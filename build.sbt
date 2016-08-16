@@ -8,7 +8,7 @@ name := """aianash"""
 
 version := "0.1.0"
 
-scalaVersion := "2.11.8"
+scalaVersion := Version.scala
 
 lazy val analytics = (project in file("modules/analytics")).enablePlugins(PlayScala)
 lazy val demo = (project in file("modules/demo")).enablePlugins(PlayScala)
