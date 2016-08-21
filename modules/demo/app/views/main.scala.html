@@ -58,7 +58,7 @@
   <link rel="stylesheet" href="assets/css/owl.carousel.min.css">
   <link rel="stylesheet" href="assets/css/owl.theme.default.min.css">
   <!-- Salvattore -->
-  <link rel="stylesheet" href="assets/css/salvattore.css">
+  <!-- <link rel="stylesheet" href="assets/css/salvattore.css"> -->
   <!-- Theme Style -->
   <link rel="stylesheet" href="assets/css/style.css">
   <!-- Modernizr JS -->
@@ -95,13 +95,11 @@
         (window[fn].p = window[fn].p || []).push(arguments);
       }
       window[fn].v = 1 * new Date();
-      setTimeout(function() {
-        a = document.createElement('script');
-        m = document.getElementsByTagName('script')[0];
-        a.async = 1;
-        a.src = 'http://aianash.com:9000/analytics/aianash.js';
-        m.parentNode.insertBefore(a, m);
-      }, 1000);
+      a = document.createElement('script');
+      m = document.getElementsByTagName('script')[0];
+      a.async = 1;
+      a.src = 'http://aianash.com:9000/analytics/aianash.js';
+      m.parentNode.insertBefore(a, m);
     })(window, document);
     aian('token', 'AIA-16726637-28992-1');
     aian('track', 'all');
