@@ -79,6 +79,16 @@
     if(ele !== parent) return true;
   };
 
+  function util_deltacode(obj, k, prev) {
+    var tmp = obj[k];
+    obj[k] = tmp - prev;
+    return tmp;
+  };
+
+  // function util_lzw(s) {
+
+  // }
+
   /** fn **/
 
   function fn_setsafe(obj, name, fn) {
@@ -157,24 +167,71 @@
       acc_mouseInTm = {},
       acc_mouseInXY = {};
 
+  function util_lzw(state, data) {
+    var dict = state['d'];
+    var phrase = state['p'];
+    var res = state['r'];
+    var code = state['c'];
+    var currChar;
+    for(var i = 0; i < data.length; i++) {
+      currChar = data[i];
+      if(dict[phrase + currChar] != null) {
+        phrase += currChar;
+      } else {
+        res += String.fromCharCode(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
+        dict[phrase + currChar] = code;
+        code++;
+        phrase = currChar;
+      }
+    }
+    state['p'] = phrase;
+    state['r'] = res;
+    state['c'] = code;
+  }
+
   function acc_encode(events) {
     var prevTm = aian.V;
-    var encoded = prevTm + "|";
+    var prevDur = 0;
+    var datastr = prevTm + "";
+    var data = datastr.split("");
+
+    var state = {d: {}, p: data[0], c: 256, r: ""};
+    util_lzw(state, [].slice.call(data, 1));
+
     for(i = 0; i < events.length; i++) {
       var event = events[i];
-      var tmpTm = event[1];
-      event[1] = tmpTm - prevTm;
-      prevTm = tmpTm;
-      encoded = encoded + [].join.call(event, ',');
+      var evtype = event[0];
+
+      prevTm = util_deltacode(event, 1, prevTm);
+
+      if(evtype === 'r') {
+        event[5] = event[5] - event[3];
+        event[6] = event[6] - event[4];
+      } else if(evtype === 'p' && event.length > 4) {
+        var pathele = event[3];
+        var prevx = pathele[1];
+        var prevy = pathele[2];
+        for(var j = 4; j < event.length; j++) {
+          pathele = event[j];
+          prevx = util_deltacode(pathele, 1, prevx);
+          prevy = util_deltacode(pathele, 2, prevy);
+        }
+      }
+
+      util_lzw(state, [].join.call(event, ',').split(""));
     }
-    return encoded;
+
+    var res = state['r'];
+    var phrase = state['p'];
+    res += String.fromCharCode(phrase.length > 1 ? state['d'][phrase] : phrase.charCodeAt(0));
+    return res;
   };
 
   function acc_append() {
     var args = arguments;
     acc_events.push(args);
     var encoded;
-    if(acc_events.length > 10) {
+    if(acc_events.length > 20) {
       encoded = acc_encode(acc_events);
       acc_events = [];
       transport_send(acc_analyticsUrl, encoded, util_noop);
@@ -275,7 +332,7 @@
     var xy = acc_mouseInXY[id],
         dur = (tm - startTm);
 
-    if(dur >= 300) {
+    if(dur >= 700) {
       path_end();
       acc_append('s', startTm, dur, id, xy[0], xy[1]);
     } else if(path_useExisting()) {
