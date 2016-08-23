@@ -19,13 +19,13 @@
 
   function onready(fn) {
     readyList.push(fn);
-  };
+  }
 
   function ready() {
     if(isReady) return;
     isReady = true;
     for(i = 0; i < readyList.length; readyList[i](), i++);
-  };
+  }
 
   function readycompleted() {
     doc.removeEventListener("DOMContentLoaded", readycompleted, false);
@@ -35,11 +35,11 @@
 
   /** util **/
 
-  function util_noop() {};
+  function util_noop() {}
 
   function util_err(ex) {
     console.error(ex);
-  };
+  }
 
   function util_pereq(a, b, per) {
     math.abs(a - b) <= per * (math.max(a, b));
@@ -47,7 +47,7 @@
 
   function util_ishttps() {
     return doc.location.protocol === "https:";
-  };
+  }
 
   function util_listen(el, event, fn, useCapture) {
     try {
@@ -56,7 +56,7 @@
     } catch (ex) {
       util_err(ex);
     }
-  };
+  }
 
   function util_relxy(ele) {
     var br = ele.getBoundingClientRect();
@@ -69,7 +69,7 @@
     img.height = 1;
     img.src = src;
     return img;
-  };
+  }
 
   function util_isoutside(parent, event) {
     var ele = event.relatedTarget || event.toElement || event.fromElement;
@@ -77,13 +77,13 @@
       ele = ele.parentNode;
     }
     if(ele !== parent) return true;
-  };
+  }
 
   function util_deltacode(obj, k, prev) {
     var tmp = obj[k];
     obj[k] = tmp - prev;
     return tmp;
-  };
+  }
 
   function util_lzw(state, data) {
     var dict = state['d'];
@@ -127,13 +127,13 @@
 
   function fn_mapply(thiz, fns) {
     for(i = 0; i < fns.length; fn_papply(thiz, fns[i]), i++);
-  };
+  }
 
   /** transport **/
 
   function transport_beacon(url, data, success) {
     return win.navigator.sendBeacon ? win.navigator.sendBeacon(url, data) ? (success(), true) : false : false;
-  };
+  }
 
   function transport_ajax(url, data, success) {
     try {
@@ -156,7 +156,7 @@
     } else return false;
     xhr.send(data);
     return true;
-  };
+  }
 
   function transport_imgsend(url, data, success) {
     var img = util_mk1pxImg(url + "?" + data);
@@ -165,7 +165,7 @@
       img.onerror = null;
       success();
     }
-  };
+  }
 
   function transport_send(url, data, success) {
     success = success || util_noop;
@@ -176,7 +176,7 @@
       util_err();
       return false;
     }
-  };
+  }
 
   /** accumulator **/
 
@@ -223,7 +223,7 @@
     var phrase = state['p'];
     res += String.fromCharCode(phrase.length > 1 ? state['d'][phrase] : phrase.charCodeAt(0));
     return res;
-  };
+  }
 
   function acc_append() {
     var args = arguments;
@@ -234,7 +234,7 @@
       acc_events = [];
       transport_send(acc_analyticsUrl, encoded, util_noop);
     }
-  };
+  }
 
   /** path event constructors **/
 
@@ -244,23 +244,23 @@
 
   function path_useExisting() {
     return path_active && ((1 * new Date()) - path_latestTimestamp) < 2000;
-  };
+  }
 
   function path_new(startTm) {
     path_end(); // end any existing path
     path_active = true;
     path = ['p', startTm, 0];
-  };
+  }
 
   function path_end() {
     path_active && (path_active = false, acc_append.apply(null, path));
-  };
+  }
 
   function path_append(id, xy, tm) {
     path_latestTimestamp = tm;
     path[2] = tm - path[1];
     path.push([id, xy[0], xy[1]]);
-  };
+  }
 
   /** read event constructors */
 
@@ -319,13 +319,13 @@
     evh_prevSkrlTm = currTm;
     evh_prevSkrlX = x;
     evh_prevSkrlY = y;
-  };
+  }
 
   function evh_mousein(tm, id, event) {
     evh_mouseActivity = true;
     acc_mouseInTm[id] = tm;
     acc_mouseInXY[id] = util_relxy(event.target);
-  };
+  }
 
   function evh_mouseout(tm, id, event) {
     evh_mouseActivity = true;
@@ -345,7 +345,7 @@
       path_new(startTm);
       path_append(id, xy, tm);
     }
-  };
+  }
 
   function evh_crMouseHandler(id, fn) {
     return function(event) {
@@ -354,12 +354,12 @@
         fn.call(null, 1 * new Date(), id, event);
       }
     }
-  };
+  }
 
   function evh_watchMouseEvt(section, id) {
     util_listen(section, 'mouseover', evh_crMouseHandler(id, evh_mousein), false);
     util_listen(section, 'mouseout', evh_crMouseHandler(id, evh_mouseout), false);
-  };
+  }
 
   /** AIAN API **/
 

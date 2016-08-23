@@ -1,6 +1,6 @@
 package actors.analytics
 
-import scala.collection.mutable.{ArrayBuffer, StringBuilder, Map => MMap, IndexedSeq => MIndexedSeq}
+import scala.collection.mutable.{ArrayBuffer, StringBuilder, Map => MMap}
 
 import java.net.URL
 

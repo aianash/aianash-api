@@ -25,7 +25,6 @@ class AnalyticsController @Inject() (system: ActorSystem)
   }
 
   def append(d: String, t: Long, u: String) = Action { implicit request =>
-    println(u)
     notification ! Notify(t, 1L, 1L, new URL(u), d)
     Ok("").withHeaders(
       allow(),
