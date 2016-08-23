@@ -5,6 +5,7 @@ import scala.collection.mutable.{ArrayBuffer, StringBuilder, Map => MMap}
 import java.net.URL
 
 import akka.actor.{Actor, Props, ActorLogging}
+import akka.routing.FromConfig
 
 import aianonymous.commons.events._
 
@@ -14,6 +15,8 @@ case class Notify(tokenId: Long, aianId: Long, sessionId: Long, pageUrl: URL, en
   extends NotificationProtocol
 
 class NotificationService extends Actor with ActorLogging  {
+
+  // val cassieService = context.actorOf(FromConfig.props(), name = "cassie-service")
 
   def receive = {
     case Notify(tokenId, aianId, sessionId, pageUrl, encoded) =>
@@ -134,5 +137,6 @@ class NotificationService extends Actor with ActorLogging  {
 }
 
 object NotificationService {
+  final val name  = "notification-service"
   def props = Props(classOf[NotificationService])
 }

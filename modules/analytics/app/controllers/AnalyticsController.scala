@@ -3,7 +3,7 @@ package controllers.analytics
 import javax.inject._
 import java.net.URL
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, ActorRef}
 
 import play.api._
 import play.api.mvc._
@@ -13,12 +13,10 @@ import actors.analytics.{NotificationService, Notify}
 
 //
 @Singleton
-class AnalyticsController @Inject() (system: ActorSystem)
-  extends Controller {
+class AnalyticsController @Inject() (system: ActorSystem,
+  @Named(NotificationService.name) notification: ActorRef) extends Controller {
 
   import play.api.libs.concurrent.Execution.Implicits.defaultContext
-
-  val notification = system.actorOf(NotificationService.props)
 
   def aianashjs = Action { implicit request =>
     Ok(views.js.aianash())
@@ -34,7 +32,6 @@ class AnalyticsController @Inject() (system: ActorSystem)
       exposedHeaders()
     )
   }
-
 
   private def allow() = "Allow" -> "*"
 
