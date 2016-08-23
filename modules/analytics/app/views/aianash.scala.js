@@ -85,9 +85,27 @@
     return tmp;
   };
 
-  // function util_lzw(s) {
-
-  // }
+  function util_lzw(state, data) {
+    var dict = state['d'];
+    var phrase = state['p'];
+    var res = state['r'];
+    var code = state['c'];
+    var currChar;
+    for(var i = 0; i < data.length; i++) {
+      currChar = data[i];
+      if(dict[phrase + currChar] != null) {
+        phrase += currChar;
+      } else {
+        res += String.fromCharCode(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
+        dict[phrase + currChar] = code;
+        code++;
+        phrase = currChar;
+      }
+    }
+    state['p'] = phrase;
+    state['r'] = res;
+    state['c'] = code;
+  }
 
   /** fn **/
 
@@ -162,32 +180,10 @@
 
   /** accumulator **/
 
-  var acc_analyticsUrl = (util_ishttps() ? "https:" : "http:") + "//www.aianash.com/analytics/notify",
+  var acc_analyticsUrl = (util_ishttps() ? "https:" : "http:") + "//aianash.com:9000/analytics/append",
       acc_events = [],
       acc_mouseInTm = {},
       acc_mouseInXY = {};
-
-  function util_lzw(state, data) {
-    var dict = state['d'];
-    var phrase = state['p'];
-    var res = state['r'];
-    var code = state['c'];
-    var currChar;
-    for(var i = 0; i < data.length; i++) {
-      currChar = data[i];
-      if(dict[phrase + currChar] != null) {
-        phrase += currChar;
-      } else {
-        res += String.fromCharCode(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
-        dict[phrase + currChar] = code;
-        code++;
-        phrase = currChar;
-      }
-    }
-    state['p'] = phrase;
-    state['r'] = res;
-    state['c'] = code;
-  }
 
   function acc_encode(events) {
     var prevTm = aian.V;
@@ -218,7 +214,9 @@
         }
       }
 
-      util_lzw(state, [].join.call(event, ',').split(""));
+      data = [event[0]];
+      data = data.concat([].slice.call(event, 1).join(',').split(""));
+      util_lzw(state, data);
     }
 
     var res = state['r'];
@@ -232,7 +230,7 @@
     acc_events.push(args);
     var encoded;
     if(acc_events.length > 20) {
-      encoded = acc_encode(acc_events);
+      encoded = "d=" + encodeURIComponent(acc_encode(acc_events)) + "&t=" + aian.T + "&u=" + encodeURIComponent(aian.U);
       acc_events = [];
       transport_send(acc_analyticsUrl, encoded, util_noop);
     }
@@ -297,6 +295,12 @@
       evh_prevSkrlY = 0,
       evh_prevSkrlTm;
 
+  // [TODO] to be handled as a seperation ViewChange event
+  function evh_resize() {
+    windowHeight = win.screen.height;
+    windowWidth = win.screen.width;
+  }
+
   function evh_scroll(event) {
     path_end();
 
@@ -308,7 +312,7 @@
 
     if(prevDur > 700 || evh_mouseActivity) {
       read_end();
-      acc_append('f',  evh_prevSkrlTm, prevDur, evh_prevSkrlX, evh_prevSkrlY);
+      acc_append('f',  evh_prevSkrlTm, prevDur, evh_prevSkrlX, evh_prevSkrlY, windowHeight, windowWidth);
       evh_mouseActivity = false;
     } else read_update(evh_prevSkrlTm, prevDur, evh_prevSkrlX, evh_prevSkrlY) || read_start(evh_prevSkrlTm, prevDur, evh_prevSkrlX, evh_prevSkrlY);
 
@@ -360,10 +364,10 @@
   /** AIAN API **/
 
   aian = function() { return fn_papply(aian, arguments); };
-  aian.token = "";
+  aian.T = "";
 
   aian.token = function(token) {
-    this.token = token;
+    this.T = token;
   };
 
   aian.track = function() {
@@ -371,6 +375,7 @@
     for(i = 0; i < sections.length; evh_watchMouseEvt(sections[i], i), i++);
     evh_prevSkrlTm = aian.V;
     util_listen(win, 'scroll', evh_scroll, false);
+    util_listen(win, 'resize', evh_resize, false);
   };
 
   onready(function() {
@@ -379,6 +384,7 @@
     var oaian = win["aian"];
     if(oaian) {
       aian.V = oaian.v; // when page was visited
+      aian.U = doc.location.href;
       var _aian = win["aian"] = aian;
       fn_setsafe(_aian, "token", _aian.token);
       fn_setsafe(_aian, "track", _aian.track);
