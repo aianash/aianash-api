@@ -1,1 +1,2 @@
 GET /aianash.js               controllers.analytics.AnalyticsController.aianashjs()
+GET /append                    controllers.analytics.AnalyticsController.append(d: String, t: Long, u: String)
