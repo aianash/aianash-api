@@ -2,5 +2,6 @@
 
 -> /demo  demo.Routes
 -> /analytics analytics.Routes
+-> / customer.Routes
 
 GET /assets/*file     controllers.Assets.at(path="/public", file)

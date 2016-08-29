@@ -11,11 +11,12 @@ version := "0.1.0"
 scalaVersion := Version.scala
 
 lazy val analytics = (project in file("modules/analytics")).enablePlugins(PlayScala)
+lazy val customer = (project in file("modules/customer")).enablePlugins(PlayScala)
 lazy val demo = (project in file("modules/demo")).enablePlugins(PlayScala)
 
 lazy val main = (project in file(".")).enablePlugins(PlayScala)
-                                      .dependsOn(analytics, demo)
-                                      .aggregate(analytics, demo)
+                                      .dependsOn(analytics, customer, demo)
+                                      .aggregate(analytics, customer, demo)
 
 scalacOptions ++= Seq("-feature",  "-language:postfixOps", "-language:reflectiveCalls")
 
