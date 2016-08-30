@@ -13,14 +13,14 @@ import aianonymous.commons.customer._
 import cassie.core.protocols.customer._
 
 
-sealed trait CustomerSettingsProtocol
-case class AddPageTags(tags: Seq[PageTags]) extends CustomerSettingsProtocol with Replyable[Boolean]
-case class GetPageTags(tid: Long, pid: Long) extends CustomerSettingsProtocol with Replyable[Seq[PageTags]]
-case class GetTokenId(domain: String) extends CustomerSettingsProtocol with Replyable[Option[Domain]]
-case class GetPageId(url: String, tokenId: Long) extends CustomerSettingsProtocol with Replyable[PageURL]
+sealed trait CustomerConfiguratorProtocol
+case class AddPageTags(tags: Seq[PageTags]) extends CustomerConfiguratorProtocol with Replyable[Boolean]
+case class GetPageTags(tid: Long, pid: Long) extends CustomerConfiguratorProtocol with Replyable[Seq[PageTags]]
+case class GetTokenId(domain: String) extends CustomerConfiguratorProtocol with Replyable[Option[Domain]]
+case class GetPageId(url: String, tokenId: Long) extends CustomerConfiguratorProtocol with Replyable[PageURL]
 
 
-class PageTagger extends Actor with ActorLogging {
+class CustomerConfigurator extends Actor with ActorLogging {
 
   import context.dispatcher
 
@@ -46,9 +46,9 @@ class PageTagger extends Actor with ActorLogging {
 
 }
 
-object PageTagger {
+object CustomerConfigurator {
 
-  final val name = "page-tagger"
-  def props = Props(classOf[PageTagger])
+  final val name = "customer-configurator"
+  def props = Props(classOf[CustomerConfigurator])
 
 }

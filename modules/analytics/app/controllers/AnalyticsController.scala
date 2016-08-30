@@ -24,26 +24,27 @@ class AnalyticsController @Inject() (system: ActorSystem,
 
   def append(d: String, t: Long, u: String) = Action { implicit request =>
     notification ! Notify(t, 1L, 1L, new URL(u), d)
-    Ok("").withHeaders(
-      allow(),
-      allowOrigin(request),
-      allowMethods(),
-      allowCredentials(),
-      exposedHeaders()
-    )
+    Ok("")
+    // Ok("").withHeaders(
+    //   allow(),
+    //   allowOrigin(request),
+    //   allowMethods(),
+    //   allowCredentials(),
+    //   exposedHeaders()
+    // )
   }
 
-  private def allow() = "Allow" -> "*"
+  // private def allow() = "Allow" -> "*"
 
-  private def allowOrigin(request: RequestHeader) = {
-    val protocol = if (request.secure) "https://" else "http://"
-    val origin =  protocol + request.host
-    "Access-Control-Allow-Origin" -> origin
-  }
+  // private def allowOrigin(request: RequestHeader) = {
+  //   val protocol = if (request.secure) "https://" else "http://"
+  //   val origin =  protocol + request.host
+  //   "Access-Control-Allow-Origin" -> origin
+  // }
 
-  private def allowMethods() = "Access-Control-Allow-Methods" -> "POST, GET, OPTIONS"
+  // private def allowMethods() = "Access-Control-Allow-Methods" -> "POST, GET, OPTIONS"
 
-  private def exposedHeaders() = "Access-Control-Expose-Headers" -> "WWW-Authenticate, Server-Authorization"
+  // private def exposedHeaders() = "Access-Control-Expose-Headers" -> "WWW-Authenticate, Server-Authorization"
 
-  private def allowCredentials() = "Access-Control-Allow-Credentials" -> "true"
+  // private def allowCredentials() = "Access-Control-Allow-Credentials" -> "true"
 }

@@ -8,6 +8,6 @@ import actors.customer._
 
 class CustomerModule extends AbstractModule with AkkaGuiceSupport {
   def configure = {
-    bindActor[PageTagger](PageTagger.name)
+    bindActor[CustomerConfigurator](CustomerConfigurator.name)
   }
 }

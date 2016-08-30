@@ -18,6 +18,8 @@ lazy val main = (project in file(".")).enablePlugins(PlayScala)
                                       .dependsOn(analytics, customer, demo)
                                       .aggregate(analytics, customer, demo)
 
+libraryDependencies += filters
+
 scalacOptions ++= Seq("-feature",  "-language:postfixOps", "-language:reflectiveCalls")
 
 routesGenerator := InjectedRoutesGenerator

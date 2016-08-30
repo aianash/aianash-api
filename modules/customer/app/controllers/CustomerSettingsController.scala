@@ -22,7 +22,7 @@ import actors.customer._
 
 @Singleton
 class CustomerSettingsController @Inject() (system: ActorSystem,
-  @Named(PageTagger.name) pageTagger: ActorRef) extends Controller with CustomerJsonCombinator {
+  @Named(CustomerConfigurator.name) pageTagger: ActorRef) extends Controller with CustomerJsonCombinator {
 
   def addPageTags = Action.async(parse.json) { implicit request =>
     val tid  = (request.body \ "token_id").as[String]
@@ -64,33 +64,10 @@ class CustomerSettingsController @Inject() (system: ActorSystem,
     implicit val timeout = Timeout(2 seconds)
     (pageTagger ?= GetTokenId(name)).map { res =>
       res match {
-        case Some(domain) =>
-          Ok(Json.toJson(domain)).withHeaders(
-            allow(),
-            allowOrigin(request),
-            allowMethods(),
-            allowCredentials(),
-            exposedHeaders()
-          )
-
-        case None =>
-          Unauthorized("Sorry ! This domain is not in our database.")
+        case Some(domain) => Ok(Json.toJson(domain))
+        case None         => Unauthorized("Sorry ! This domain is not in our database.")
       }
     }
   }
-
-  private def allow() = "Allow" -> "*"
-
-  private def allowOrigin(request: RequestHeader) = {
-    val protocol = if (request.secure) "https://" else "http://"
-    val origin =  protocol + request.host
-    "Access-Control-Allow-Origin" -> "*"
-  }
-
-  private def allowMethods() = "Access-Control-Allow-Methods" -> "POST, GET, OPTIONS"
-
-  private def exposedHeaders() = "Access-Control-Expose-Headers" -> "WWW-Authenticate, Server-Authorization"
-
-  private def allowCredentials() = "Access-Control-Allow-Credentials" -> "true"
 
 }
