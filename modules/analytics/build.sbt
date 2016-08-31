@@ -5,6 +5,7 @@ name := """aianash-analytics"""
 scalaVersion := Version.scala
 
 libraryDependencies ++= Seq(
-) ++ Libs.akka ++ Libs.microservice ++ Libs.commonsEvents
+  "com.aianonymous" %% "cassie-core" % "0.1.0"
+) ++ Libs.akka ++ Libs.microservice ++ Libs.commonsEvents ++ Libs.commonsCore
 
 routesGenerator := InjectedRoutesGenerator

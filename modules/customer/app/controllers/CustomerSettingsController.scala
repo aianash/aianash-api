@@ -30,14 +30,14 @@ class CustomerSettingsController @Inject() (system: ActorSystem,
     val tags = (request.body \ "tags").as[Seq[JsValue]]
 
     val urlo = new URL(url)
-    val urln = urlo.getHost + ":" + urlo.getPort + urlo.getPath
+    val tokenId = tid.toLong
 
     implicit val timeout = Timeout(2 seconds)
-    (pageTagger ?= GetPageId(urln, tid.toLong)).map { pageUrl =>
+    (pageTagger ?= GetPageId(urlo, tokenId)).map { pageId =>
       tags map { tag =>
         val sid = (tag \ "section_id").as[Int]
         val t   = (tag \ "tags").as[Set[String]]
-        PageTags(pageUrl.tokenId, pageUrl.pageId, sid, t)
+        PageTags(tokenId, pageId, sid, t)
       }
     } flatMap { tags =>
       (pageTagger ?= AddPageTags(tags)).map { res =>
@@ -50,9 +50,8 @@ class CustomerSettingsController @Inject() (system: ActorSystem,
   def getPageTags(tokenId: Long, url: String) = Action.async { implicit request =>
     implicit val timeout = Timeout(2 seconds)
     val urlo = new URL(url)
-    val urln = urlo.getHost + ":" + urlo.getPort + urlo.getPath
-    (pageTagger ?= GetPageId(urln, tokenId)) flatMap { pageUrl =>
-      (pageTagger ?= GetPageTags(tokenId, pageUrl.pageId)).map { res =>
+    (pageTagger ?= GetPageId(urlo, tokenId)) flatMap { pageId =>
+      (pageTagger ?= GetPageTags(tokenId, pageId)).map { res =>
         Ok(Json.toJson(res))
       }
     }

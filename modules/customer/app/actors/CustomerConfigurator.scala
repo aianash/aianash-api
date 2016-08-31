@@ -2,6 +2,8 @@ package actors.customer
 
 import scala.concurrent.duration._
 
+import java.net.URL
+
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.routing.FromConfig
 import akka.pattern.pipe
@@ -17,7 +19,7 @@ sealed trait CustomerConfiguratorProtocol
 case class AddPageTags(tags: Seq[PageTags]) extends CustomerConfiguratorProtocol with Replyable[Boolean]
 case class GetPageTags(tid: Long, pid: Long) extends CustomerConfiguratorProtocol with Replyable[Seq[PageTags]]
 case class GetTokenId(domain: String) extends CustomerConfiguratorProtocol with Replyable[Option[Domain]]
-case class GetPageId(url: String, tokenId: Long) extends CustomerConfiguratorProtocol with Replyable[PageURL]
+case class GetPageId(url: URL, tokenId: Long) extends CustomerConfiguratorProtocol with Replyable[Long]
 
 
 class CustomerConfigurator extends Actor with ActorLogging {
@@ -41,7 +43,7 @@ class CustomerConfigurator extends Actor with ActorLogging {
 
     case GetPageId(url, tokenId) =>
       implicit val timeout = Timeout(2 seconds)
-      (customerService ?= GetPageURL(url, tokenId)) pipeTo sender()
+      (customerService ?= GetOrCreatePageId(url, tokenId)) pipeTo sender()
   }
 
 }
