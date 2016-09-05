@@ -1,6 +1,6 @@
 import com.aianonymous.sbt.standard.libraries.StandardLibraries._
 
-name := """aianash-analytics"""
+name := """aianash-customer"""
 
 scalaVersion := Version.scala
 
