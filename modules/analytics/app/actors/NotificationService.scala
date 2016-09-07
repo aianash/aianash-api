@@ -1,12 +1,19 @@
 package actors.analytics
 
 import scala.collection.mutable.{ArrayBuffer, StringBuilder, Map => MMap}
+import scala.concurrent.duration._
 
 import java.net.URL
 
 import akka.actor.{Actor, Props, ActorLogging}
+import akka.routing.FromConfig
+import akka.util.Timeout
 
+import aianonymous.commons.core.protocols._, Implicits._
 import aianonymous.commons.events._
+
+import cassie.core.protocols.customer.GetPageId
+import cassie.core.protocols.events._
 
 
 sealed trait NotificationProtocol
@@ -15,13 +22,26 @@ case class Notify(tokenId: Long, aianId: Long, sessionId: Long, pageUrl: URL, en
 
 class NotificationService extends Actor with ActorLogging  {
 
+  import context.dispatcher
+
+  val customerService = context.actorOf(FromConfig.props(), name = "customer-service")
+  val eventService = context.actorOf(FromConfig.props(), name = "event-service")
+
   def receive = {
     case Notify(tokenId, aianId, sessionId, pageUrl, encoded) =>
       try {
-        //[TODO] get pageId from pageURL and tokenId
-        val pageId = 1L
-        val (startTime, events) = toEvents(lzwDecode(encoded))
-        val pageEvents = PageEvents(sessionId, pageId, startTime, pageUrl, events)
+        implicit val timeout = Timeout(2 seconds)
+        (customerService ?= GetPageId(pageUrl)) foreach { pageIdO =>
+          pageIdO match {
+            case Some(pageId) =>
+              val (startTime, events) = toEvents(lzwDecode(encoded))
+              val pageEvents = PageEvents(sessionId, pageId, startTime, events)
+              val eventsSession = EventsSession(tokenId, aianId, sessionId, Seq(pageEvents))
+              eventService ! InsertEvents(eventsSession, 1)
+
+            case None =>
+          }
+        }
       } catch {
         case ex: UnsupportedOperationException =>
       }
@@ -134,5 +154,6 @@ class NotificationService extends Actor with ActorLogging  {
 }
 
 object NotificationService {
+  final val name  = "notification-service"
   def props = Props(classOf[NotificationService])
 }
