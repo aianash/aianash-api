@@ -22,7 +22,7 @@ lazy val root = (project in file("."))
     dockerEntrypoint := Seq("sh", "-c",
                             """export NASH_HOST=`ifdata -pa eth0` && \
                             |  export NASH_PORT=7474 && \
-                            |  bin/aianash -Dakka.cluster.seed-nodes.0=akka.tcp://aianonymous@172.17.0.3:4848 $*""".stripMargin
+                            |  bin/aianash $*""".stripMargin
                             ),
     dockerCommands ++= Seq(
       Cmd("USER", "root")

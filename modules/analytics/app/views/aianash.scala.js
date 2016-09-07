@@ -180,7 +180,7 @@
 
   /** accumulator **/
 
-  var acc_analyticsUrl = (util_ishttps() ? "https:" : "http:") + "//aianash.com:9000/analytics/append",
+  var acc_analyticsUrl = (util_ishttps() ? "https:" : "http:") + "//aianash.com/api/analytics/append",
       acc_events = [],
       acc_mouseInTm = {},
       acc_mouseInXY = {};
