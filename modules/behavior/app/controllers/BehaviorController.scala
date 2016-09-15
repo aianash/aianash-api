@@ -56,7 +56,7 @@ class BehaviorController @Inject() (system: ActorSystem,
 
   //
   def getCluster(tokenId: Long, pageId: Long, instanceId: Long) =
-    Action.async(parse.json) { implicit request =>
+    Action.async { implicit request =>
       import Behavior._
 
       val cluster =
@@ -69,7 +69,7 @@ class BehaviorController @Inject() (system: ActorSystem,
 
   //
   def getStory(tokenId: Long, pageId: Long, instanceId: Long, behaviorId: Long) =
-    Action.async(parse.json) { implicit request =>
+    Action.async { implicit request =>
       import Behavior._
       val tags = List("web", "analytics", "artificial-intelligence", "user-behavior")
 
@@ -102,7 +102,7 @@ class BehaviorController @Inject() (system: ActorSystem,
 
   //
   def getAllStats(tokenId: Long, pageId: Long, instanceId: Long) =
-    Action.async(parse.json) { implicit request =>
+    Action.async { implicit request =>
       import Behavior._
 
       val behaviorsS =
@@ -118,14 +118,14 @@ class BehaviorController @Inject() (system: ActorSystem,
 
   //
   def getStat(tokenId: Long, pageId: Long, instanceId: Long, behaviorId: Long) =
-    Action.async(parse.json) { implicit request =>
+    Action.async { implicit request =>
       import Behavior._
 
       val stats = Json.obj(
         "stats" -> Json.toJson(mkstats)
       )
 
-      Future(Ok(""))
+      Future(Ok(stats))
     }
 
 }
