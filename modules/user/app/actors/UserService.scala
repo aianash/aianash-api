@@ -6,8 +6,8 @@ import akka.actor.{Actor, ActorLogging, Props}
 
 import play.Configuration
 
-import com.ecwid.maleorang.MailchimpClient;
-import com.ecwid.maleorang.method.v3_0.members.EditMemberMethod;
+import com.ecwid.maleorang.{MailchimpClient, MailchimpException}
+import com.ecwid.maleorang.method.v3_0.members.EditMemberMethod
 
 //
 sealed trait UserServiceProtocol
@@ -30,11 +30,14 @@ class UserService @Inject() (config: Configuration) extends Actor with ActorLogg
 
   private def createOrUpdateSubscription(email: String) {
     try {
-      val method = new EditMemberMethod.CreateOrUpdate(listId, email)
+      val method = new EditMemberMethod.Create(listId, email)
       method.status = "pending"
 
       mailchimpClient.execute(method)
     } catch {
+      case ex: MailchimpException if(ex.code == 400) =>
+        log.warning("Email [{}] already subscribed", email)
+
       case ex: Exception =>
         log.error(ex, "Error while adding email [{}] to subscription list", email)
     }
