@@ -9,12 +9,13 @@ version := "0.1.0"
 
 scalaVersion := Version.scala
 
-lazy val analytics = (project in file("modules/analytics")).enablePlugins(PlayScala, JavaAppPackaging, DockerPlugin)
-lazy val customer = (project in file("modules/customer")).enablePlugins(PlayScala, JavaAppPackaging, DockerPlugin)
-lazy val demo = (project in file("modules/demo")).enablePlugins(PlayScala, JavaAppPackaging, DockerPlugin)
+lazy val analytics = (project in file("modules/analytics")).enablePlugins(PlayScala)
+lazy val customer = (project in file("modules/customer")).enablePlugins(PlayScala)
+lazy val user = (project in file("modules/user")).enablePlugins(PlayScala)
+lazy val demo = (project in file("modules/demo")).enablePlugins(PlayScala)
 
 lazy val root = (project in file("."))
-  .enablePlugins(PlayScala, JavaAppPackaging, DockerPlugin)
+  .enablePlugins(PlayScala, JavaAppPackaging)
   .settings(
     dockerExposedPorts := Seq(9000),
     dockerRepository := Some("aianonymous"),
@@ -30,8 +31,8 @@ lazy val root = (project in file("."))
     aggregate in Docker := false
 
   )
-  .dependsOn(analytics, customer, demo)
-  .aggregate(analytics, customer, demo)
+  .dependsOn(analytics, customer, user, demo)
+  .aggregate(analytics, customer, user, demo)
 
 libraryDependencies += filters
 
