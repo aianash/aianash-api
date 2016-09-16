@@ -31,7 +31,7 @@ class UserService @Inject() (config: Configuration) extends Actor with ActorLogg
   private def createOrUpdateSubscription(email: String) {
     try {
       val method = new EditMemberMethod.CreateOrUpdate(listId, email)
-      method.status = "subscribed"
+      method.status = "pending"
 
       mailchimpClient.execute(method)
     } catch {
