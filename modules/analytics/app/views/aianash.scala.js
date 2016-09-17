@@ -230,7 +230,7 @@
     acc_events.push(args);
     var encoded;
     if(acc_events.length > 20) {
-      encoded = "d=" + encodeURIComponent(acc_encode(acc_events)) + "&t=" + aian.T + "&u=" + encodeURIComponent(aian.U);
+      encoded = "d=" + encodeURIComponent(acc_encode(acc_events)) + "&t=" + aian.T;
       acc_events = [];
       transport_send(acc_analyticsUrl, encoded, util_noop);
     }
@@ -388,7 +388,6 @@
     var oaian = win["aian"];
     if(oaian) {
       aian.V = oaian.v; // when page was visited
-      aian.U = doc.location.href;
       var _aian = win["aian"] = aian;
       fn_setsafe(_aian, "token", _aian.token);
       fn_setsafe(_aian, "track", _aian.track);

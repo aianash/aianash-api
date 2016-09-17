@@ -32,18 +32,26 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
     Ok(views.js.aianash())
   }
 
-  def append(d: String, t: Long, u: String) = Action.async { implicit request =>
+  def append(d: String, t: Long) = Action.async { implicit request =>
     val aianidcookieO = request.cookies.get("aianid")
     val sessionidcookieO = request.cookies.get("sessionid")
 
-    checkAndCreateCookies(aianidcookieO, sessionidcookieO) map { case (aianid, sessionid) =>
-      notification ! Notify(t, aianid.toLong, sessionid.toLong, new URL(u), d)
-      Ok("").withCookies(
-        Cookie("aianid", aianid, Option(config.getInt("cookie.aianid.max-age"))),
-        Cookie("sessionid", sessionid, Option(config.getInt("cookie.sessionid.max-age")))
-      )
-    } recover {
-      case ex: Exception => Ok("")
+    request.headers.get("referer") match {
+      case Some(ref) =>
+        val url = new URL(ref)
+        checkAndCreateCookies(aianidcookieO, sessionidcookieO) map { case (aianid, sessionid) =>
+          notification ! Notify(t, aianid.toLong, sessionid.toLong, url, d)
+          Ok("").withCookies(
+            Cookie("aianid", aianid, Option(config.getInt("cookie.aianid.max-age"))),
+            Cookie("sessionid", sessionid, Option(config.getInt("cookie.sessionid.max-age")))
+          )
+        } recover {
+          case ex: Exception => Ok("")
+        }
+
+      case None =>
+        Logger.error("Referer is not present in header for data [$d] and token id [$t]")
+        Future.successful(Ok(""))
     }
   }
 
