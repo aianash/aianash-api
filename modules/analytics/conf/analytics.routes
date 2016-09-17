@@ -1,2 +1,3 @@
 GET /aianash.js               controllers.analytics.AnalyticsController.aianashjs()
-GET /append                    controllers.analytics.AnalyticsController.append(d: String, t: Long, u: String)
+GET /append                   controllers.analytics.AnalyticsController.append(d: String, t: Long, u: String)
+GET /cookies/set              controllers.analytics.AnalyticsController.setCookies

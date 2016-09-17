@@ -361,6 +361,10 @@
     util_listen(section, 'mouseout', evh_crMouseHandler(id, evh_mouseout), false);
   }
 
+  /** Cookies */
+  var cookie_setUrl = (util_ishttps() ? 'https' : 'http') + '://aianash.com/api/analytics/cookies/set';
+  transport_send(cookie_setUrl, []);
+
   /** AIAN API **/
 
   aian = function() { return fn_papply(aian, arguments); };

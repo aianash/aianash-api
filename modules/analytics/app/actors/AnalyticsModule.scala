@@ -8,6 +8,7 @@ class AnalyticsModule extends AbstractModule with AkkaGuiceSupport {
 
   def configure = {
     bindActor[NotificationService](NotificationService.name)
+    bindActor[IdGenerationService](IdGenerationService.name)
   }
 
 }
