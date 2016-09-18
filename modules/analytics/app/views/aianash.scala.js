@@ -188,11 +188,8 @@
   function acc_encode(events) {
     var prevTm = aian.V;
     var prevDur = 0;
-    var datastr = prevTm + "";
-    var data = datastr.split("");
-
-    var state = {d: {}, p: data[0], c: 256, r: ""};
-    util_lzw(state, [].slice.call(data, 1));
+    var data;
+    var state;
 
     for(i = 0; i < events.length; i++) {
       var event = events[i];
@@ -216,12 +213,17 @@
 
       data = [event[0]];
       data = data.concat([].slice.call(event, 1).join(',').split(""));
+      if(i == 0) {
+        state = {d: {}, p: data[0], c: 256, r: ""};
+        date = [].slice.call(data, 1)
+      }
       util_lzw(state, data);
     }
 
     var res = state['r'];
     var phrase = state['p'];
     res += String.fromCharCode(phrase.length > 1 ? state['d'][phrase] : phrase.charCodeAt(0));
+    res = prevTm + res;
     return res;
   }
 
@@ -361,9 +363,9 @@
     util_listen(section, 'mouseout', evh_crMouseHandler(id, evh_mouseout), false);
   }
 
-  /** Cookies */
-  var cookie_setUrl = (util_ishttps() ? 'https' : 'http') + '://aianash.com/api/analytics/cookies/set';
-  transport_send(cookie_setUrl, []);
+  /** Pageview */
+  var pageview_url = (util_ishttps() ? 'https' : 'http') + '://aianash.com/api/analytics/pageview';
+  transport_send(pageview_url, 'ts=' + (new Date()).getTime());
 
   /** AIAN API **/
 
