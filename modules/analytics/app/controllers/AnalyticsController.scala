@@ -16,7 +16,7 @@ import views.html._
 
 import aianonymous.commons.core.protocols._, Implicits._
 
-import actors.analytics.{NotificationService, Notify}
+import actors.analytics.{NotificationService, Notify, AddSession}
 import actors.analytics.{IdGenerationService, GetAianId, GetSessionId}
 
 //
@@ -39,7 +39,7 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
     request.headers.get("referer") match {
       case Some(ref) =>
         val url = new URL(ref)
-        checkAndCreateCookies(aianidcookieO, sessionidcookieO) map { case (aianid, sessionid) =>
+        checkAndCreateCookies(aianidcookieO, sessionidcookieO, url) map { case (aianid, sessionid) =>
           notification ! Notify(t, aianid.toLong, sessionid.toLong, url, d)
           Ok("").withCookies(
             Cookie("aianid", aianid, Option(config.getInt("cookie.aianid.max-age"))),
@@ -50,7 +50,7 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
         }
 
       case None =>
-        Logger.error("Referer is not present in header for data [$d] and token id [$t]")
+        Logger.error(s"Referer is not present in header for data [$d] and token id [$t]")
         Future.successful(Ok(""))
     }
   }
@@ -59,23 +59,34 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
     val aianidcookieO = request.cookies.get("aianid")
     val sessionidcookieO = request.cookies.get("sessionid")
 
-    checkAndCreateCookies(aianidcookieO, sessionidcookieO) map { case (aianid, sessionid) =>
-      Ok("").withCookies(
-        Cookie("aianid", aianid, Option(config.getInt("cookie.aianid.max-age"))),
-        Cookie("sessionid", sessionid, Option(config.getInt("cookie.sessionid.max-age")))
-      )
-    } recover {
-      case ex: Exception => Ok("")
+    request.headers.get("referer") match {
+      case Some(ref) =>
+        val url = new URL(ref)
+        checkAndCreateCookies(aianidcookieO, sessionidcookieO, url) map { case (aianid, sessionid) =>
+          Ok("").withCookies(
+            Cookie("aianid", aianid, Option(config.getInt("cookie.aianid.max-age"))),
+            Cookie("sessionid", sessionid, Option(config.getInt("cookie.sessionid.max-age")))
+          )
+        } recover {
+          case ex: Exception =>
+            Logger.error(s"Error occurred while setting cookies. Exception: [$ex]")
+            Ok("")
+        }
+
+      case None =>
+        Logger.error(s"Referer is not present in header while setting the cookie")
+        Future.successful(Ok(""))
     }
   }
 
-  private def checkAndCreateCookies(aianidcookieO: Option[Cookie], sessionidcookieO: Option[Cookie]) =
+  private def checkAndCreateCookies(aianidcookieO: Option[Cookie], sessionidcookieO: Option[Cookie], pageUrl: URL) =
     (aianidcookieO, sessionidcookieO) match {
       case (None, _) =>
         implicit val timeout = Timeout(2 seconds)
         for {
           aianid    <- idGenerationService ?= GetAianId
           sessionid <- idGenerationService ?= GetSessionId
+          _         <- notification ?= AddSession(aianid, sessionid, pageUrl)
         } yield (aianid.toString, sessionid.toString)
 
       case (Some(aianidcookie), Some(sessionidcookie)) =>
@@ -83,7 +94,10 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
 
       case (Some(aianidcookie), None) =>
         implicit val timeout = Timeout(2 seconds)
-        (idGenerationService ?= GetSessionId).map(x => (aianidcookie.value, x.toString))
+        for {
+          sessionid <- idGenerationService ?= GetSessionId
+          _         <- notification ?= AddSession(aianidcookie.value.toLong, sessionid, pageUrl)
+        } yield (aianidcookie.value, sessionid.toString)
     }
 
 }

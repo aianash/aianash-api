@@ -2,23 +2,29 @@ package actors.analytics
 
 import scala.collection.mutable.{ArrayBuffer, StringBuilder, Map => MMap}
 import scala.concurrent.duration._
+import scala.concurrent.Future
 
 import java.net.URL
 
 import akka.actor.{Actor, Props, ActorLogging}
+import akka.pattern.pipe
 import akka.routing.FromConfig
 import akka.util.Timeout
+
+import play.api.Logger
 
 import aianonymous.commons.core.protocols._, Implicits._
 import aianonymous.commons.events._
 
-import cassie.core.protocols.customer.GetPageId
+import cassie.core.protocols.customer.{GetPageId, GetPageURL}
 import cassie.core.protocols.events._
 
 
 sealed trait NotificationProtocol
 case class Notify(tokenId: Long, aianId: Long, sessionId: Long, pageUrl: URL, encoded: String)
   extends NotificationProtocol
+case class AddSession(aianId: Long, sessionId: Long, url: URL)
+  extends NotificationProtocol with Replyable[Boolean]
 
 class NotificationService extends Actor with ActorLogging  {
 
@@ -31,20 +37,31 @@ class NotificationService extends Actor with ActorLogging  {
     case Notify(tokenId, aianId, sessionId, pageUrl, encoded) =>
       try {
         implicit val timeout = Timeout(2 seconds)
-        (customerService ?= GetPageId(pageUrl)) foreach { pageIdO =>
-          pageIdO match {
-            case Some(pageId) =>
-              val (startTime, events) = toEvents(lzwDecode(encoded))
-              val pageEvents = PageEvents(sessionId, pageId, startTime, events)
-              val eventsSession = EventsSession(tokenId, aianId, sessionId, Seq(pageEvents))
-              eventService ! InsertEvents(eventsSession, 1)
+        (customerService ?= GetPageId(pageUrl)) foreach {
+          case Some(pageId) =>
+            val (startTime, events) = toEvents(lzwDecode(encoded))
+            val pageEvents = PageEvents(sessionId, pageId, startTime, events)
+            val eventsSession = EventsSession(tokenId, aianId, sessionId, Seq(pageEvents))
+            eventService ! InsertEvents(eventsSession, 1)
 
-            case None =>
-          }
+          case None =>
         }
       } catch {
         case ex: UnsupportedOperationException =>
       }
+
+    case AddSession(aianId, sessionId, url) =>
+      implicit val timeout = Timeout(2 seconds)
+      (customerService ?= GetPageURL(url)) flatMap {
+        case Some(pageUrl) =>
+          implicit val timeout = Timeout(2 seconds)
+          val startTime = java.lang.System.currentTimeMillis()
+          eventService ?= InsertSession(pageUrl.tokenId, pageUrl.pageId, startTime, sessionId, aianId)
+
+        case None =>
+          Logger.error(s"No page url entry for url [$url.toString]")
+          Future.failed(new Exception("No page url entry"))
+      } pipeTo sender()
   }
 
   //
