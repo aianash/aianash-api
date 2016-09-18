@@ -1,7 +1,7 @@
 package controllers.customer
 
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 import java.net.URL
 
@@ -13,34 +13,39 @@ import akka.util.Timeout
 import play.api._
 import play.api.mvc._
 import play.api.libs.json._
+import play.Configuration
 
 import aianonymous.commons.core.protocols._, Implicits._
+import aianonymous.commons.core.PageURL
 import aianonymous.commons.customer.{PageTags, CustomerJsonCombinator}
 
 import actors.customer._
 
 
 @Singleton
-class CustomerSettingsController @Inject() (system: ActorSystem,
-  @Named(CustomerConfigurator.name) pageTagger: ActorRef) extends Controller with CustomerJsonCombinator {
+class CustomerSettingsController @Inject() (system: ActorSystem, config: Configuration,
+  @Named(CustomerConfigurator.name) configurator: ActorRef) extends Controller with CustomerJsonCombinator {
+
+  import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
   def addPageTags = Action.async(parse.json) { implicit request =>
     val tid  = (request.body \ "token_id").as[String]
     val url  = (request.body \ "url").as[String]
     val tags = (request.body \ "tags").as[Seq[JsValue]]
+    val name = (request.body \ "name").asOpt[String] getOrElse config.getString("webpage.default-name")
 
-    val urlo = new URL(url)
+    val urlo = PageURL(url)
     val tokenId = tid.toLong
 
     implicit val timeout = Timeout(2 seconds)
-    (pageTagger ?= GetPageId(urlo, tokenId)).map { pageId =>
+    (configurator ?= ObtainOrCreatePageId(urlo, tokenId, name)).map { pageId =>
       tags map { tag =>
         val sid = (tag \ "section_id").as[Int]
         val t   = (tag \ "tags").as[Set[String]]
         PageTags(tokenId, pageId, sid, t)
       }
     } flatMap { tags =>
-      (pageTagger ?= AddPageTags(tags)).map { res =>
+      (configurator ?= AddPageTags(tags)).map { res =>
         if(res == true) Ok("Tags have been added successfully")
         else InternalServerError("Some error occurred !")
       }
@@ -49,19 +54,23 @@ class CustomerSettingsController @Inject() (system: ActorSystem,
 
   def getPageTags(tokenId: Long, url: String) = Action.async { implicit request =>
     implicit val timeout = Timeout(2 seconds)
-    val urlo = new URL(url)
-    (pageTagger ?= GetPageId(urlo, tokenId)) flatMap { pageId =>
-      (pageTagger ?= GetPageTags(tokenId, pageId)).map { res =>
-        Ok(Json.toJson(res))
-      }
+    val urlo = PageURL(url)
+    (configurator ?= ObtainPageId(urlo)) flatMap {
+      case Some(pageId) =>
+        (configurator ?= ObtainPageTags(tokenId, pageId)).map { res =>
+          Ok(Json.toJson(res))
+        }
+
+      case None =>
+        Future.successful(Ok(Json.toJson(Seq.empty[PageTags])))
     }
   }
 
   def getTokenId(url: String) = Action.async { implicit request =>
-    val urlo  = new URL(url)
-    val name = urlo.getHost
+    val urlo = PageURL(url)
+    val name = urlo.host
     implicit val timeout = Timeout(2 seconds)
-    (pageTagger ?= GetTokenId(name)).map { res =>
+    (configurator ?= ObtainTokenId(name)).map { res =>
       res match {
         case Some(domain) => Ok(Json.toJson(domain))
         case None         => Unauthorized("Sorry ! This domain is not in our database.")

@@ -10,6 +10,7 @@ import akka.pattern.pipe
 import akka.util.Timeout
 
 import aianonymous.commons.core.protocols._, Implicits._
+import aianonymous.commons.core.PageURL
 import aianonymous.commons.customer._
 
 import cassie.core.protocols.customer._
@@ -17,9 +18,10 @@ import cassie.core.protocols.customer._
 
 sealed trait CustomerConfiguratorProtocol
 case class AddPageTags(tags: Seq[PageTags]) extends CustomerConfiguratorProtocol with Replyable[Boolean]
-case class GetPageTags(tid: Long, pid: Long) extends CustomerConfiguratorProtocol with Replyable[Seq[PageTags]]
-case class GetTokenId(domain: String) extends CustomerConfiguratorProtocol with Replyable[Option[Domain]]
-case class GetPageId(url: URL, tokenId: Long) extends CustomerConfiguratorProtocol with Replyable[Long]
+case class ObtainPageTags(tid: Long, pid: Long) extends CustomerConfiguratorProtocol with Replyable[Seq[PageTags]]
+case class ObtainTokenId(domain: String) extends CustomerConfiguratorProtocol with Replyable[Option[Domain]]
+case class ObtainPageId(url: PageURL) extends CustomerConfiguratorProtocol with Replyable[Option[Long]]
+case class ObtainOrCreatePageId(url: PageURL, tokenId: Long, name: String) extends CustomerConfiguratorProtocol with Replyable[Long]
 
 
 class CustomerConfigurator extends Actor with ActorLogging {
@@ -33,17 +35,21 @@ class CustomerConfigurator extends Actor with ActorLogging {
       implicit val timeout = Timeout(2 seconds)
       (customerService ?= InsertPageTags(tags)) pipeTo sender()
 
-    case GetPageTags(tid, pid) =>
+    case ObtainPageTags(tid, pid) =>
       implicit val timeout = Timeout(2 seconds)
-      (customerService ?= FetchPageTags(tid, pid)) pipeTo sender()
+      (customerService ?= GetPageTags(tid, pid)) pipeTo sender()
 
-    case GetTokenId(domain) =>
+    case ObtainTokenId(domain) =>
       implicit val timeout = Timeout(2 seconds)
       (customerService ?= GetDomain(domain)) pipeTo sender()
 
-    case GetPageId(url, tokenId) =>
+    case ObtainPageId(url) =>
       implicit val timeout = Timeout(2 seconds)
-      (customerService ?= GetOrCreatePageId(url, tokenId)) pipeTo sender()
+      (customerService ?= GetPageId(url)) pipeTo sender()
+
+    case ObtainOrCreatePageId(url, tokenId, name) =>
+      implicit val timeout = Timeout(2 seconds)
+      (customerService ?= GetOrCreatePageId(url, tokenId, name)) pipeTo sender()
   }
 
 }

@@ -15,6 +15,7 @@ import play.Configuration
 import views.html._
 
 import aianonymous.commons.core.protocols._, Implicits._
+import aianonymous.commons.core.PageURL
 
 import actors.analytics.{NotificationService, Notify, AddSession}
 import actors.analytics.{IdGenerationService, GetAianId, GetSessionId}
@@ -38,7 +39,7 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
 
     request.headers.get("referer") match {
       case Some(ref) =>
-        val url = new URL(ref)
+        val url = PageURL(ref)
         checkAndCreateCookies(aianidcookieO, sessionidcookieO, url) map { case (aianid, sessionid) =>
           notification ! Notify(t, aianid.toLong, sessionid.toLong, url, d)
           Ok("").withCookies(
@@ -50,7 +51,7 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
         }
 
       case None =>
-        Logger.error(s"Referer is not present in header for data [$d] and token id [$t]")
+        Logger.warn(s"Referer is not present in header for data [$d] and token id [$t]")
         Future.successful(Ok(""))
     }
   }
@@ -61,7 +62,7 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
 
     request.headers.get("referer") match {
       case Some(ref) =>
-        val url = new URL(ref)
+        val url = PageURL(ref)
         checkAndCreateCookies(aianidcookieO, sessionidcookieO, url) map { case (aianid, sessionid) =>
           Ok("").withCookies(
             Cookie("aianid", aianid, Option(config.getInt("cookie.aianid.max-age"))),
@@ -69,17 +70,17 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
           )
         } recover {
           case ex: Exception =>
-            Logger.error(s"Error occurred while setting cookies. Exception: [$ex]")
+            Logger.warn(s"Error occurred while setting cookies. Exception: [$ex]")
             Ok("")
         }
 
       case None =>
-        Logger.error(s"Referer is not present in header while setting the cookie")
+        Logger.warn(s"Referer is not present in header while setting the cookie")
         Future.successful(Ok(""))
     }
   }
 
-  private def checkAndCreateCookies(aianidcookieO: Option[Cookie], sessionidcookieO: Option[Cookie], pageUrl: URL) =
+  private def checkAndCreateCookies(aianidcookieO: Option[Cookie], sessionidcookieO: Option[Cookie], pageUrl: PageURL) =
     (aianidcookieO, sessionidcookieO) match {
       case (None, _) =>
         implicit val timeout = Timeout(2 seconds)

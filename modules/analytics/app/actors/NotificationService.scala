@@ -14,16 +14,17 @@ import akka.util.Timeout
 import play.api.Logger
 
 import aianonymous.commons.core.protocols._, Implicits._
+import aianonymous.commons.core.PageURL
 import aianonymous.commons.events._
 
-import cassie.core.protocols.customer.{GetPageId, GetPageURL}
+import cassie.core.protocols.customer.{GetPageId, GetWebPage}
 import cassie.core.protocols.events._
 
 
 sealed trait NotificationProtocol
-case class Notify(tokenId: Long, aianId: Long, sessionId: Long, pageUrl: URL, encoded: String)
+case class Notify(tokenId: Long, aianId: Long, sessionId: Long, pageUrl: PageURL, encoded: String)
   extends NotificationProtocol
-case class AddSession(aianId: Long, sessionId: Long, url: URL)
+case class AddSession(aianId: Long, sessionId: Long, url: PageURL)
   extends NotificationProtocol with Replyable[Boolean]
 
 class NotificationService extends Actor with ActorLogging  {
@@ -52,14 +53,14 @@ class NotificationService extends Actor with ActorLogging  {
 
     case AddSession(aianId, sessionId, url) =>
       implicit val timeout = Timeout(2 seconds)
-      (customerService ?= GetPageURL(url)) flatMap {
+      (customerService ?= GetWebPage(url)) flatMap {
         case Some(pageUrl) =>
           implicit val timeout = Timeout(2 seconds)
           val startTime = java.lang.System.currentTimeMillis()
           eventService ?= InsertSession(pageUrl.tokenId, pageUrl.pageId, startTime, sessionId, aianId)
 
         case None =>
-          Logger.error(s"No page url entry for url [$url.toString]")
+          Logger.warn(s"No page url entry for url [$url]")
           Future.failed(new Exception("No page url entry"))
       } pipeTo sender()
   }
