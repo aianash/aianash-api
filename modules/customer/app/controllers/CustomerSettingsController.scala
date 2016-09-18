@@ -34,11 +34,11 @@ class CustomerSettingsController @Inject() (system: ActorSystem, config: Configu
     val tags = (request.body \ "tags").as[Seq[JsValue]]
     val name = (request.body \ "name").asOpt[String] getOrElse config.getString("webpage.default-name")
 
-    val urlo = PageURL(url)
+    val pageurl = PageURL(url)
     val tokenId = tid.toLong
 
     implicit val timeout = Timeout(2 seconds)
-    (configurator ?= ObtainOrCreatePageId(urlo, tokenId, name)).map { pageId =>
+    (configurator ?= ObtainOrCreatePageId(pageurl, tokenId, name)).map { pageId =>
       tags map { tag =>
         val sid = (tag \ "section_id").as[Int]
         val t   = (tag \ "tags").as[Set[String]]
@@ -54,8 +54,8 @@ class CustomerSettingsController @Inject() (system: ActorSystem, config: Configu
 
   def getPageTags(tokenId: Long, url: String) = Action.async { implicit request =>
     implicit val timeout = Timeout(2 seconds)
-    val urlo = PageURL(url)
-    (configurator ?= ObtainPageId(urlo)) flatMap {
+    val pageurl = PageURL(url)
+    (configurator ?= ObtainPageId(pageurl)) flatMap {
       case Some(pageId) =>
         (configurator ?= ObtainPageTags(tokenId, pageId)).map { res =>
           Ok(Json.toJson(res))
@@ -67,8 +67,8 @@ class CustomerSettingsController @Inject() (system: ActorSystem, config: Configu
   }
 
   def getTokenId(url: String) = Action.async { implicit request =>
-    val urlo = PageURL(url)
-    val name = urlo.host
+    val pageurl = PageURL(url)
+    val name = pageurl.host
     implicit val timeout = Timeout(2 seconds)
     (configurator ?= ObtainTokenId(name)).map { res =>
       res match {
