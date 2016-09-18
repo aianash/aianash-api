@@ -1,3 +1,6 @@
 POST    /page-tags/add    controllers.customer.CustomerSettingsController.addPageTags
 GET     /page-tags/get    controllers.customer.CustomerSettingsController.getPageTags(tokenId: Long, url: String)
 GET     /token-id/get     controllers.customer.CustomerSettingsController.getTokenId(url: String)
+
+GET     /pages/:tokenId   controllers.customer.CustomerSettingsController.getPages(tokenId: Long)
+GET     /instances/:tokenId/:forDateStr   controllers.customer.CustomerSettingsController.getInstances(tokenId: Long, forDateStr: String)

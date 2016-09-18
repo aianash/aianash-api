@@ -20,6 +20,7 @@ import aianonymous.commons.core.protocols._, Implicits._
 import aianash.commons.behavior._
 
 import actors.behavior._
+import models.behavior._
 
 import org.joda.time.Duration
 
@@ -36,26 +37,26 @@ class BehaviorController @Inject() (system: ActorSystem,
   )
 
   private val referrals = Seq(
-    Behavior.Referral(1L, "Home page", 1.0f, new URL("http://aianash.com")),
-    Behavior.Referral(1L, "Behavior page", 1.0f, new URL("http://aianash.com/dashboard/behavior")),
-    Behavior.Referral(1L, "Predict page", 1.0f, new URL("http://aianash.com/dashboard/predict")),
-    Behavior.Referral(1L, "AB Test page", 1.0f, new URL("http://aianash.com/dashboard/abtest"))
+    Behavior.Referral(1L, "Home page", 100L, new URL("http://aianash.com")),
+    Behavior.Referral(2L, "Behavior page", 200L, new URL("http://aianash.com/dashboard/behavior")),
+    Behavior.Referral(3L, "Predict page", 100L, new URL("http://aianash.com/dashboard/predict")),
+    Behavior.Referral(4L, "AB Test page", 300L, new URL("http://aianash.com/dashboard/abtest"))
   )
 
   private def mkstats = {
     import Behavior._
     Stats(
-      PageViews(Random.nextLong),
-      Visitors(Random.nextLong),
-      Visitors(Random.nextLong),
-      new Duration(Random.nextLong),
-      referrals.map(_.copy(score = Random.nextFloat)),
-      referrals.map(_.copy(score = Random.nextFloat))
+      PageViews(103000L),
+      Visitors(50400L),
+      Visitors(5200L),
+      new Duration(10000),
+      referrals.map(_.copy(count = 100)),
+      referrals.map(_.copy(count = 30))
     )
   }
 
   //
-  def getCluster(tokenId: Long, pageId: Long, instanceId: Long) =
+  def getCluster(tokenId: Long, pageId: Long, instanceId: String) =
     Action.async { implicit request =>
       import Behavior._
 
@@ -68,7 +69,7 @@ class BehaviorController @Inject() (system: ActorSystem,
     }
 
   //
-  def getStory(tokenId: Long, pageId: Long, instanceId: Long, behaviorId: Long) =
+  def getStory(tokenId: Long, pageId: Long, instanceId: String, behaviorId: Long) =
     Action.async { implicit request =>
       import Behavior._
       val tags = List("web", "analytics", "artificial-intelligence", "user-behavior")
@@ -83,7 +84,7 @@ class BehaviorController @Inject() (system: ActorSystem,
         } result()
 
       val timeline =
-        (1 to 10).foldLeft(IndexedSeq.newBuilder[Timeline]) { (seq, idx) =>
+        (1 to 10).foldLeft(IndexedSeq.newBuilder[TimelineEvent]) { (seq, idx) =>
           val duration = new Duration(Random.nextLong)
           val sectionsD = SectionDistribution(
             sections.map { section =>
@@ -92,37 +93,36 @@ class BehaviorController @Inject() (system: ActorSystem,
           )
 
           val tagsD = TagDistribution(tags.map(_ -> DistributionParams(Random.nextDouble, Random.nextDouble)).toMap)
-          val stats = TimelineStats(Random.nextLong, Random.nextLong)
+          val stats = TimelineStats(100050L, 154000L)
 
-          seq += Timeline(duration, sectionsD, tagsD, stats, Set.empty[Action])
+          seq += TimelineEvent(duration, sectionsD, tagsD, stats, Set.empty[Action])
         } result()
 
-      Future(Ok(Json.toJson(Story(information, timeline))))
+      val res = Json.obj(
+        "story" -> Json.toJson(Story(information, timeline))
+      )
+      Future(Ok(res))
     }
 
   //
-  def getAllStats(tokenId: Long, pageId: Long, instanceId: Long) =
+  def getAllStats(tokenId: Long, pageId: Long, instanceId: String) =
     Action.async { implicit request =>
       import Behavior._
 
-      val behaviorsS =
-        behaviors.map(_.behaviorId.bhuuid.toString -> Json.toJson(mkstats)).toMap
-
       val stats = Json.obj(
-        "stats" -> Json.toJson(mkstats),
-        "behaviors" -> Json.toJson(behaviorsS)
+        "stats" -> Json.toJson(mkstats)
       )
 
       Future(Ok(stats))
     }
 
   //
-  def getStat(tokenId: Long, pageId: Long, instanceId: Long, behaviorId: Long) =
+  def getStat(tokenId: Long, pageId: Long, instanceId: String, behaviorId: Long) =
     Action.async { implicit request =>
       import Behavior._
 
       val stats = Json.obj(
-        "stats" -> Json.toJson(mkstats)
+        "stat" -> Json.toJson(mkstats)
       )
 
       Future(Ok(stats))
