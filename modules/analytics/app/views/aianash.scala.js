@@ -188,11 +188,8 @@
   function acc_encode(events) {
     var prevTm = aian.V;
     var prevDur = 0;
-    var datastr = prevTm + "";
-    var data = datastr.split("");
-
-    var state = {d: {}, p: data[0], c: 256, r: ""};
-    util_lzw(state, [].slice.call(data, 1));
+    var data;
+    var state;
 
     for(i = 0; i < events.length; i++) {
       var event = events[i];
@@ -216,12 +213,17 @@
 
       data = [event[0]];
       data = data.concat([].slice.call(event, 1).join(',').split(""));
+      if(i == 0) {
+        state = {d: {}, p: data[0], c: 256, r: ""};
+        date = [].slice.call(data, 1)
+      }
       util_lzw(state, data);
     }
 
     var res = state['r'];
     var phrase = state['p'];
     res += String.fromCharCode(phrase.length > 1 ? state['d'][phrase] : phrase.charCodeAt(0));
+    res = prevTm + res;
     return res;
   }
 
@@ -230,7 +232,7 @@
     acc_events.push(args);
     var encoded;
     if(acc_events.length > 20) {
-      encoded = "d=" + encodeURIComponent(acc_encode(acc_events)) + "&t=" + aian.T + "&u=" + encodeURIComponent(aian.U);
+      encoded = "d=" + encodeURIComponent(acc_encode(acc_events)) + "&t=" + aian.T;
       acc_events = [];
       transport_send(acc_analyticsUrl, encoded, util_noop);
     }
@@ -361,6 +363,10 @@
     util_listen(section, 'mouseout', evh_crMouseHandler(id, evh_mouseout), false);
   }
 
+  /** Pageview */
+  var pageview_url = (util_ishttps() ? 'https' : 'http') + '://aianash.com/api/analytics/pageview';
+  transport_send(pageview_url, 'ts=' + (new Date()).getTime());
+
   /** AIAN API **/
 
   aian = function() { return fn_papply(aian, arguments); };
@@ -384,7 +390,6 @@
     var oaian = win["aian"];
     if(oaian) {
       aian.V = oaian.v; // when page was visited
-      aian.U = doc.location.href;
       var _aian = win["aian"] = aian;
       fn_setsafe(_aian, "token", _aian.token);
       fn_setsafe(_aian, "track", _aian.track);
