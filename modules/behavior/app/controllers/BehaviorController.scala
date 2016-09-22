@@ -4,8 +4,6 @@ package controllers.behavior
 import scala.concurrent.Future
 import scala.util.Random
 
-import java.net.URL
-
 import javax.inject._
 
 import akka.actor.{ActorSystem, ActorRef}
@@ -17,6 +15,8 @@ import play.api.libs.json._
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import aianonymous.commons.core.protocols._, Implicits._
+import aianonymous.commons.core.PageURL
+
 import aianash.commons.behavior._
 
 import actors.behavior._
@@ -37,10 +37,10 @@ class BehaviorController @Inject() (system: ActorSystem,
   )
 
   private val referrals = Seq(
-    Behavior.Referral(1L, "Home page", 100L, new URL("http://aianash.com")),
-    Behavior.Referral(2L, "Behavior page", 200L, new URL("http://aianash.com/dashboard/behavior")),
-    Behavior.Referral(3L, "Predict page", 100L, new URL("http://aianash.com/dashboard/predict")),
-    Behavior.Referral(4L, "AB Test page", 300L, new URL("http://aianash.com/dashboard/abtest"))
+    Behavior.Referral(1L, "Home page", 100L,  PageURL("http://aianash.com")),
+    Behavior.Referral(2L, "Behavior page", 200L, PageURL("http://aianash.com/dashboard/behavior")),
+    Behavior.Referral(3L, "Predict page", 100L, PageURL("http://aianash.com/dashboard/predict")),
+    Behavior.Referral(4L, "AB Test page", 300L, PageURL("http://aianash.com/dashboard/abtest"))
   )
 
   private val tags = List("web", "analytics", "artificial-intelligence", "user-behavior")
