@@ -2,6 +2,8 @@
 GET   /clusters/:tokenId/:pageId/:instanceId   controllers.behavior.BehaviorController.getCluster(tokenId: Long, pageId: Long, instanceId: String)
 GET   /stats/:tokenId/:pageId/:instanceId   controllers.behavior.BehaviorController.getAllStats(tokenId: Long, pageId: Long, instanceId: String)
 
+GET   /informations/:tokenId/:pageId/:instanceId   controllers.behavior.BehaviorController.getInformations(tokenId: Long, pageId: Long, instanceId: String)
+
 # Behavior specific entities
 GET   /stories/:tokenId/:pageId/:instanceId/:behaviorId   controllers.behavior.BehaviorController.getStory(tokenId: Long, pageId: Long, instanceId: String, behaviorId: Long)
 GET   /stats/:tokenId/:pageId/:instanceId/:behaviorId     controllers.behavior.BehaviorController.getStat(tokenId: Long, pageId: Long, instanceId: String, behaviorId: Long)

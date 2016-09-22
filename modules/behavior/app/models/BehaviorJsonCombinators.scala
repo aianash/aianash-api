@@ -14,6 +14,9 @@ import aianash.commons.behavior._
 trait BehaviorJsonCombinator {
   import Behavior._
 
+  private def roundOff(value: Double) =
+    math.round(value * 1000) / 10.0
+
   private def prettyCount(count: Long) = {
     if(count <= 1000) count.toString
     else {
@@ -39,7 +42,7 @@ trait BehaviorJsonCombinator {
     (__ \ "mean").write[Double] and
     (__ \ "var").write[Double]
   ) (
-    (params: DistributionParams) => (params.mean, params.variance)
+    (params: DistributionParams) => (roundOff(params.mean), roundOff(params.variance))
   )
 
   implicit val informationFormat: Writes[Information] = (
@@ -82,7 +85,7 @@ trait BehaviorJsonCombinator {
     (__ \ "var").write[Double]
   ) (
     (sd: (PageSection, DistributionParams)) =>
-      (sd._1.sectionId.toString, sd._1.name, sd._2.mean, sd._2.variance)
+      (sd._1.sectionId.toString, sd._1.name, roundOff(sd._2.mean), roundOff(sd._2.variance))
   )
 
   implicit val timelineEventFormat: Writes[TimelineEvent] = (
@@ -95,7 +98,7 @@ trait BehaviorJsonCombinator {
     (event: TimelineEvent) => {
       import event._
       (
-        durationIntoPage.getMillis.toString,
+        durationIntoPage.getStandardSeconds().toString,
         sections.prob.map(kv => kv._1.toString -> kv._2),
         tags.prob,
         stats, actions
@@ -136,7 +139,7 @@ trait BehaviorJsonCombinator {
         prettyCount(pageViews.count),
         prettyCount(totalVisitors.count),
         prettyCount(newVisitors.count),
-        prettyCount(avgDwellTime.getMillis),
+        avgDwellTime.getStandardSeconds() + "s",
         previousPages,
         nextPages
       )

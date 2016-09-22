@@ -115,6 +115,7 @@ class CustomerSettingsController @Inject() (system: ActorSystem, config: Configu
         "activeFrom" -> "2016-09-01",
         "activeTo" -> "ACTIVE",
         "spans" -> Json.arr(
+          Json.arr(JsNumber(1), JsNumber(4), JsString("early morning"), JsBoolean(true)),
           Json.arr(JsNumber(5), JsNumber(10), JsString("morning"), JsBoolean(true)),
           Json.arr(JsNumber(11), JsNumber(16), JsString("afternoon"), JsBoolean(false)),
           Json.arr(JsNumber(17), JsNumber(20), JsString("evening"), JsBoolean(true)),
