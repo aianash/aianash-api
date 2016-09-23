@@ -30,7 +30,7 @@ class BehaviorController @Inject() (system: ActorSystem,
   @Named(BehaviorClient.name) client: ActorRef) extends Controller with BehaviorJsonCombinator {
 
   private val behaviors = Seq(
-    Behavior(BehaviorId(1L), "New Behavior"),
+    Behavior(BehaviorId(1L), "Users from Email Campaign"),
     Behavior(BehaviorId(2L), "Recent Users"),
     Behavior(BehaviorId(3L), "Short lived Users"),
     Behavior(BehaviorId(4L), "Highest ROI")
@@ -43,7 +43,6 @@ class BehaviorController @Inject() (system: ActorSystem,
     Behavior.Referral(4L, "AB Test page", 300L, PageURL("http://aianash.com/dashboard/abtest"))
   )
 
-  private val tags = List("web", "analytics", "artificial-intelligence", "user-behavior")
 
   private val tv = 13000L
   private val nv = 1100L
@@ -88,16 +87,63 @@ class BehaviorController @Inject() (system: ActorSystem,
     "product section"
   )
 
-  private def mkInformation = {
+  private val tags = List("ecommerce", "web-analytics", "artificial-intelligence", "user-behavior", "product")
+
+  // mkScore
+  // - total visitors
+  // - interested visitors
+  // - new visitors
+  // - increase...
+  // - interest - information effectiveness
+  // calculation
+  //  - information divergence from interest
+  //  - ratio of affected existing users (lost opportunity or gained opportunity)
+  //  - ratio of affected new customers
+  //  - increase in divergence
+
+  private def mkInformation(behaviorId: Long) = {
     import Behavior._
-    val prior = TagDistribution(tags.map(_ -> DistributionParams(Random.nextDouble, Random.nextDouble)).toMap)
-    val posterior = TagDistribution(tags.map(_ -> DistributionParams(Random.nextDouble, Random.nextDouble)).toMap)
-    Information(prior, posterior)
+    val prior = tags.map(_ -> DistributionParams(Random.nextDouble, Random.nextDouble)).toMap
+    val posterior = prior.map((kv) => kv._1 -> kv._2.copy(mean = kv._2.mean * math.abs(Random.nextDouble()))).toMap
+
+    var effectiveness = 0.0
+    var incper = 0
+    val explanation =
+      (prior.map { case (tag, udist) =>
+        val idist = posterior(tag)
+        val div =
+          if((udist.mean - idist.mean) < 0.2 && udist.mean < 0.3)
+            roundOff(Random.nextDouble % .4, 1)
+          else roundOff(1.0 - (udist.mean - idist.mean), 1)
+        val rN = math.abs(Random.nextInt() % 100)
+        val rE = math.abs(Random.nextInt() % 100)
+        val increase = Random.nextInt() % 9 + 1
+        val score =
+          if(((rN > 50 || rE > 50) && div < 0.5) || ((rN < 15 || rE < 15) && div > 0.5))
+            -roundOff(Random.nextDouble % .5 + .1, 1)
+          else roundOff(Random.nextDouble % .5 + .4, 1)
+        effectiveness += score
+        incper += math.abs(increase)
+        Json.obj(
+          "tag" -> tag,
+          "interest" -> roundOff(udist.mean, 1),
+          "information" -> roundOff(idist.mean, 1),
+          "divergence" -> div,
+          "rExisting" -> rE,
+          "rNew" -> rN,
+          "increase" -> increase,
+          "score" -> score
+        )
+      }).toSeq
+    effectiveness = roundOff(effectiveness / 5.0 + .1, 1)
+    incper = incper / 5
+    Json.toJson(Information(TagDistribution(prior), TagDistribution(posterior))).asInstanceOf[JsObject] ++
+      Json.obj("explanation" -> Json.toJson(explanation), "effectiveness" -> effectiveness, "incper" -> incper)
   }
 
   private val informations =
-    behaviors.foldLeft(Map.newBuilder[BehaviorId, Behavior.Information]) { (map, behavior) =>
-      map += behavior.behaviorId -> mkInformation
+    behaviors.foldLeft(Map.newBuilder[BehaviorId, JsValue]) { (map, behavior) =>
+      map += behavior.behaviorId -> mkInformation(behavior.behaviorId.bhuuid)
     } result()
 
 
@@ -112,7 +158,7 @@ class BehaviorController @Inject() (system: ActorSystem,
   //
   private val stories = {
     import Behavior._
-    behaviors.foldLeft(Map.newBuilder[BehaviorId, Story]) { (map, behavior) =>
+    behaviors.foldLeft(Map.newBuilder[BehaviorId, JsValue]) { (map, behavior) =>
       val sections =
         (1 to 4).foldLeft(Seq.newBuilder[PageSection]) { (seq, idx) =>
           seq += PageSection(idx, sectionNames(math.abs(Random.nextInt()) % sectionNames.size))
@@ -140,7 +186,7 @@ class BehaviorController @Inject() (system: ActorSystem,
           }
         } result()
 
-      map += behavior.behaviorId -> Story(binfor(behavior.behaviorId), timeline)
+      map += behavior.behaviorId -> Json.obj("information" -> Json.toJson(binfor(behavior.behaviorId)), "timeline" -> timeline)
     } result()
   }
 

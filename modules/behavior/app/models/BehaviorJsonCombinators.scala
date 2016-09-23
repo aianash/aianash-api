@@ -14,10 +14,10 @@ import aianash.commons.behavior._
 trait BehaviorJsonCombinator {
   import Behavior._
 
-  private def roundOff(value: Double) =
-    math.round(value * 1000) / 10.0
+  protected def roundOff(value: Double, to: Int = 3) =
+    math.round(value * math.pow(10.0, to)) / 10.0
 
-  private def prettyCount(count: Long) = {
+  protected def prettyCount(count: Long) = {
     if(count <= 1000) count.toString
     else {
       var p = 10000L
