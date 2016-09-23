@@ -155,6 +155,18 @@ class BehaviorController @Inject() (system: ActorSystem,
     Behavior.Action("product", actions(math.abs(Random.nextInt()) % 3), "interested in product", Map("plan" -> Seq("premium" -> math.abs(Random.nextInt() % 10000))))
   }
 
+  private val timeseries = behaviors.map { behavior =>
+    behavior.behaviorId.bhuuid -> (for(_ <- 1 to 14) yield roundOff(math.abs(Random.nextGaussian) % 1.0, 1))
+  } toMap
+
+  private def timeSeries(behaviorId: Long) = timeseries(behaviorId)
+
+  private val conversionseries = behaviors.map { behavior =>
+    behavior.behaviorId.bhuuid -> (for(_ <- 1 to 14) yield roundOff(math.abs(Random.nextGaussian) % 1.0, 1))
+  } toMap
+
+  private def conversionSeries(behaviorId: Long) = conversionseries(behaviorId)
+
   //
   private val stories = {
     import Behavior._
@@ -218,7 +230,9 @@ class BehaviorController @Inject() (system: ActorSystem,
             "behaviorId" -> behavior.behaviorId.bhuuid.toString,
             "name" -> behavior.name,
             "information" -> Json.toJson(binfor(behavior.behaviorId)),
-            "stat" -> bstats(behavior.behaviorId.bhuuid)
+            "stat" -> bstats(behavior.behaviorId.bhuuid),
+            "timeseries" -> timeSeries(behavior.behaviorId.bhuuid),
+            "conversionseries" -> conversionSeries(behavior.behaviorId.bhuuid)
           )
         }
 
