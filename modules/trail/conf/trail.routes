@@ -1,0 +1,5 @@
+# Instance specific entities
+POST   /trail/:tokenId                      controllers.trail.TrailController.trail(tokenId: Long)
+POST   /fork/:tokenId                       controllers.trail.TrailController.fork(tokenId: Long)
+GET    /events/:tokenId                     controllers.trail.TrailController.getEvents(tokenId: Long)
+GET    /events/properties/:tokenId/:name    controllers.trail.TrailController.getEventProperties(tokenId: Long, name: String)

@@ -14,6 +14,7 @@ lazy val customer = (project in file("modules/customer")).enablePlugins(PlayScal
 lazy val user = (project in file("modules/user")).enablePlugins(PlayScala)
 lazy val demo = (project in file("modules/demo")).enablePlugins(PlayScala)
 lazy val behavior = (project in file("modules/behavior")).enablePlugins(PlayScala)
+lazy val trail = (project in file("modules/trail")).enablePlugins(PlayScala)
 
 lazy val root = (project in file("."))
   .enablePlugins(PlayScala, JavaAppPackaging)
@@ -31,8 +32,8 @@ lazy val root = (project in file("."))
     ),
     aggregate in Docker := false
   )
-  .dependsOn(analytics, customer, user, demo, behavior)
-  .aggregate(analytics, customer, user, demo, behavior)
+  .dependsOn(analytics, customer, user, demo, behavior, trail)
+  .aggregate(analytics, customer, user, demo, behavior, trail)
 
 libraryDependencies += filters
 

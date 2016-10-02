@@ -162,7 +162,7 @@ class BehaviorController @Inject() (system: ActorSystem,
   private def timeSeries(behaviorId: Long) = timeseries(behaviorId)
 
   private val conversionseries = behaviors.map { behavior =>
-    behavior.behaviorId.bhuuid -> (for(_ <- 1 to 14) yield roundOff(math.abs(Random.nextGaussian) % 1.0, 1))
+    behavior.behaviorId.bhuuid -> (for(_ <- 1 to 14) yield math.abs(Random.nextLong) % tv)
   } toMap
 
   private def conversionSeries(behaviorId: Long) = conversionseries(behaviorId)
