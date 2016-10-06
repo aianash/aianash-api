@@ -3,6 +3,7 @@ package controllers.trail
 // import scala.concurrent.duration._
 import scala.concurrent.Future
 import scala.util.Random
+import scala.collection.mutable.{Seq, Map}
 
 import javax.inject._
 
@@ -29,6 +30,93 @@ import org.joda.time.Duration
 class TrailController @Inject() (system: ActorSystem,
   @Named(TrailClient.name) client: ActorRef) extends Controller {
 
+  var trails = Map.empty[String, Seq[JsObject]]
+
+  val trail = Seq(
+    Json.obj(
+      "name" -> "subscribe",
+      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
+    ),
+    Json.obj(
+      "name" -> "how-to-integrate",
+      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
+    ),
+    Json.obj(
+      "name" -> "behavior",
+      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
+    ),
+    Json.obj(
+      "name" -> "how-it-works",
+      "props" -> Json.obj(
+        "time" -> "> 20s"
+      ),
+      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
+    ),
+    Json.obj(
+      "name" -> "advantages",
+      "props" -> Json.obj(
+        "time" -> "< 10s",
+        "focus-on" -> "our-features"
+      ),
+      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
+    ),
+    Json.obj(
+      "name" -> "homepage",
+      "props" -> Json.obj(
+        "time" -> "< 20s",
+        "focus-on" -> "images"
+      ),
+      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
+    ),
+    Json.obj(
+      "name" -> "homepage",
+      "props" -> Json.obj(
+        "time" -> "< 10s",
+        "focus-on" -> "text"
+      ),
+      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
+    )
+  )
+
+  trails += ("original" -> trail)
+
+  var i = 1
+  trail.foreach((node) => {
+    var (same, diff) = trail.splitAt(i)
+    i = i + 1
+    var j = 0
+    var isFirst = true
+    val forkedAt = (node \ "name").as[String]
+    same.foreach((a) => {
+      val nodename = (a \ "name").as[String]
+      if(Random.nextFloat < 0.8 && nodename != "behavior") {
+        if(isFirst) {
+          diff = (same(j) + ("divergedFrom" -> JsString(forkedAt))) +: diff
+          isFirst = false
+        }
+        else{
+          diff = same(j) +: diff
+        }
+      }
+      j = j + 1
+    })
+    trails += (forkedAt -> diff)
+  })
+
   private def roundOff(value: Double, to: Int = 3) =
     math.round(value * math.pow(10.0, to)) / 10.0
 
@@ -54,15 +142,7 @@ class TrailController @Inject() (system: ActorSystem,
   }
 
   def trail(tokenId: Long) = Action.async(parse.json) { implicit request =>
-    val timeline = for(_ <- 1 to 14) yield Json.obj(
-      "name" -> "played-video",
-      "props" -> Json.obj(
-        "genre" -> Json.arr("folk", "pop")
-      ),
-      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
-      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
-      "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
-    )
+    val timeline = trails.get("original")
     val response = Json.obj(
       "trail" -> Json.obj(
         "timeline" -> timeline,
@@ -74,18 +154,12 @@ class TrailController @Inject() (system: ActorSystem,
   }
 
   def fork(tokenId: Long) = Action.async(parse.json) { implicit request =>
-    val timeline = for(_ <- 1 to 14) yield Json.obj(
-        "name" -> "played-video",
-        "props" -> Json.obj(
-          "genre" -> Json.arr("folk", "pop")
-        ),
-        "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
-        "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
-        "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
-      )
+    val forkedAt = (request.body \ "fork").as[String]
+    val timeline = trails.get(forkedAt)
     val response = Json.obj(
       "trail" -> Json.obj(
         "isfork" -> true,
+        "divergedFrom" -> forkedAt,
         "timeline" -> timeline,
         "timeseries" -> (for(_ <- 1 to 14) yield roundOff(math.abs(Random.nextGaussian) % 1.0, 1))
       )
@@ -96,7 +170,7 @@ class TrailController @Inject() (system: ActorSystem,
 
   def getEvents(tokenId: Long) = Action.async { implicit request =>
     val response = Json.obj(
-      "events" -> Json.arr("played-video")
+      "events" -> Json.arr("subscribe", "how-to-integrate", "behavior", "how-it-works", "advantages", "homepage")
     )
     Future(Ok(response))
   }
@@ -104,11 +178,13 @@ class TrailController @Inject() (system: ActorSystem,
   def getEventProperties(tokenId: Long, name: String) = Action.async { implicit request =>
     val response = Json.obj(
       "event" -> Json.obj(
-        "name" -> "played-video",
+        "name" -> name,
         "props" -> Json.obj(
-          "genre" -> Json.obj(
-            "type" -> "Categorical",
-            "values" -> Json.arr("pop", "folk")
+          "time" -> Json.obj(
+            "type" -> "String"
+          ),
+          "focus-on" -> Json.obj(
+            "type" -> "String"
           )
         )
       )
