@@ -3,7 +3,7 @@ package controllers.trail
 // import scala.concurrent.duration._
 import scala.concurrent.Future
 import scala.util.Random
-import scala.collection.mutable.{Seq, Map}
+import scala.collection.mutable.{ Map}
 
 import javax.inject._
 
@@ -31,63 +31,114 @@ class TrailController @Inject() (system: ActorSystem,
   @Named(TrailClient.name) client: ActorRef) extends Controller {
 
   var trails = Map.empty[String, Seq[JsObject]]
+  var stats = Seq.empty[Map[String, (String, Float)]]
+  for(i <- 1 to 7) {
+    val total = math.abs(Random.nextLong) % 10000
+    val per = (Random.nextFloat % 0.5) + 0.3
+    val newu = total * per
+    val drop = total * (1 - per)
+    stats = stats :+ Map("new" -> (prettyCount(newu.toLong), (newu * 100/ total).toFloat),
+        "drop" -> (prettyCount(drop.toLong), (drop * 100/ total).toFloat))
+  }
 
   val trail = Seq(
     Json.obj(
-      "name" -> "subscribe",
-      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
-      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "name" -> "clicked-subscribe",
+      "new" -> Json.obj(
+        "count" -> stats(0).get("new").get._1,
+        "percent" -> stats(0).get("new").get._2
+      ),
+      "drop" -> Json.obj(
+        "count" -> stats(0).get("drop").get._1,
+        "percent" -> stats(0).get("drop").get._2
+      ),
       "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
     ),
     Json.obj(
-      "name" -> "how-to-integrate",
-      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
-      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "name" -> "viewed-how-to-integrate",
+      "new" -> Json.obj(
+        "count" -> stats(1).get("new").get._1,
+        "percent" -> stats(1).get("new").get._2
+      ),
+      "drop" -> Json.obj(
+        "count" -> stats(1).get("drop").get._1,
+        "percent" -> stats(1).get("drop").get._2
+      ),
       "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
     ),
     Json.obj(
-      "name" -> "behavior",
-      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
-      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "name" -> "viewed-behavior",
+      "new" -> Json.obj(
+        "count" -> stats(2).get("new").get._1,
+        "percent" -> stats(2).get("new").get._2
+      ),
+      "drop" -> Json.obj(
+        "count" -> stats(2).get("drop").get._1,
+        "percent" -> stats(2).get("drop").get._2
+      ),
       "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
     ),
     Json.obj(
-      "name" -> "how-it-works",
+      "name" -> "viewed-how-it-works",
       "props" -> Json.obj(
         "time" -> "> 20s"
       ),
-      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
-      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "new" -> Json.obj(
+        "count" -> stats(3).get("new").get._1,
+        "percent" -> stats(3).get("new").get._2
+      ),
+      "drop" -> Json.obj(
+        "count" -> stats(3).get("drop").get._1,
+        "percent" -> stats(3).get("drop").get._2
+      ),
       "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
     ),
     Json.obj(
-      "name" -> "advantages",
+      "name" -> "viewed-advantages",
       "props" -> Json.obj(
         "time" -> "< 10s",
         "focus-on" -> "our-features"
       ),
-      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
-      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "new" -> Json.obj(
+        "count" -> stats(4).get("new").get._1,
+        "percent" -> stats(4).get("new").get._2
+      ),
+      "drop" -> Json.obj(
+        "count" -> stats(4).get("drop").get._1,
+        "percent" -> stats(4).get("drop").get._2
+      ),
       "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
     ),
     Json.obj(
-      "name" -> "homepage",
+      "name" -> "viewed-description",
       "props" -> Json.obj(
         "time" -> "< 20s",
         "focus-on" -> "images"
       ),
-      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
-      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "new" -> Json.obj(
+        "count" -> stats(5).get("new").get._1,
+        "percent" -> stats(5).get("new").get._2
+      ),
+      "drop" -> Json.obj(
+        "count" -> stats(5).get("drop").get._1,
+        "percent" -> stats(5).get("drop").get._2
+      ),
       "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
     ),
     Json.obj(
-      "name" -> "homepage",
+      "name" -> "viewed-top-page",
       "props" -> Json.obj(
         "time" -> "< 10s",
         "focus-on" -> "text"
       ),
-      "new" -> prettyCount(math.abs(Random.nextLong) % 10000),
-      "drop" -> prettyCount(math.abs(Random.nextLong) % 10000),
+      "new" -> Json.obj(
+        "count" -> stats(6).get("new").get._1,
+        "percent" -> stats(6).get("new").get._2
+      ),
+      "drop" -> Json.obj(
+        "count" -> stats(6).get("drop").get._1,
+        "percent" -> stats(6).get("drop").get._2
+      ),
       "total" -> prettyCount(math.abs(Random.nextLong) % 10000)
     )
   )
@@ -96,25 +147,24 @@ class TrailController @Inject() (system: ActorSystem,
 
   var i = 1
   trail.foreach((node) => {
-    var (same, diff) = trail.splitAt(i)
+    var (diff, same) = trail.splitAt(i)
     i = i + 1
-    var j = 0
     var isFirst = true
     val forkedAt = (node \ "name").as[String]
-    same.foreach((a) => {
+    diff.reverse.foreach((a) => {
       val nodename = (a \ "name").as[String]
-      if(Random.nextFloat < 0.8 && nodename != "behavior") {
+      if(Random.nextFloat < 0.9 && nodename != "clicked-subscribe" && nodename != forkedAt) {
         if(isFirst) {
-          diff = (same(j) + ("divergedFrom" -> JsString(forkedAt))) +: diff
+          same = (node + ("diverging" -> JsBoolean(true))) +: same
+          same = a +: same
           isFirst = false
         }
         else{
-          diff = same(j) +: diff
+          same = a +: same
         }
       }
-      j = j + 1
     })
-    trails += (forkedAt -> diff)
+    trails += (forkedAt -> same)
   })
 
   private def roundOff(value: Double, to: Int = 3) =
@@ -170,7 +220,7 @@ class TrailController @Inject() (system: ActorSystem,
 
   def getEvents(tokenId: Long) = Action.async { implicit request =>
     val response = Json.obj(
-      "events" -> Json.arr("subscribe", "how-to-integrate", "behavior", "how-it-works", "advantages", "homepage")
+      "events" -> Json.arr("clicked-subscribe", "viwed-how-to-integrate", "viwed-behavior", "viwed-how-it-works", "viwed-advantages", "viwed-homepage")
     )
     Future(Ok(response))
   }
