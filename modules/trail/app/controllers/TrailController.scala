@@ -151,11 +151,11 @@ class TrailController @Inject() (system: ActorSystem,
     i = i + 1
     var isFirst = true
     val forkedAt = (node \ "name").as[String]
+    same = (node + ("diverging" -> JsBoolean(true))) +: same
     diff.reverse.foreach((a) => {
       val nodename = (a \ "name").as[String]
       if(Random.nextFloat < 0.9 && nodename != "clicked-subscribe" && nodename != forkedAt) {
         if(isFirst) {
-          same = (node + ("diverging" -> JsBoolean(true))) +: same
           same = a +: same
           isFirst = false
         }
