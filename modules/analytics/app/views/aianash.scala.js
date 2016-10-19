@@ -1,4 +1,4 @@
-@()(implicit req: RequestHeader)
+@(analyticsurl: String, pageviewurl: String)(implicit req: RequestHeader)
 
 (function(){
   var win  = window,
@@ -28,8 +28,8 @@
   }
 
   function readycompleted() {
-    doc.removeEventListener("DOMContentLoaded", readycompleted, false);
-    win.removeEventListener("load", readycompleted, false);
+    doc.removeEventListener('DOMContentLoaded', readycompleted, false);
+    win.removeEventListener('load', readycompleted, false);
     ready();
   }
 
@@ -46,13 +46,13 @@
   }
 
   function util_ishttps() {
-    return doc.location.protocol === "https:";
+    return doc.location.protocol === 'https:';
   }
 
   function util_listen(el, event, fn, useCapture) {
     try {
       if(el.addEventListener) el.addEventListener(event, fn, !!useCapture);
-      else if(el.attachEvent) el.attachEvent("on" + event, fn);
+      else if(el.attachEvent) el.attachEvent('on' + event, fn);
     } catch (ex) {
       util_err(ex);
     }
@@ -64,7 +64,7 @@
   }
 
   function util_mk1pxImg(src) {
-    var img = doc.createElement("img");
+    var img = doc.createElement('img');
     img.width = 1;
     img.height = 1;
     img.src = src;
@@ -140,16 +140,16 @@
       var xhr = new win.XMLHttpRequest();
     } catch(e) {}
 
-    if(xhr && "withCredentials" in xhr) {
-      xhr.open("POST", url, false);
+    if(xhr && 'withCredentials' in xhr) {
+      xhr.open('POST', url, false);
       xhr.withCredentials = false;
-      xhr.setRequestHeader("Content-Type", "text/plain");
+      xhr.setRequestHeader('Content-Type', 'text/plain');
       xhr.onreadystatechange = function() {
         4 == xhr.readyState && (success(), xhr = null)
       };
-    } else if(typeof XDomainRequest != "undefined") { // IE 8, 9
+    } else if(typeof XDomainRequest != 'undefined') { // IE 8, 9
       xhr = new XDomainRequest();
-      xhr.open("POST", url);
+      xhr.open('POST', url);
       xhr.onload = function() {
         success(), xhr = null;
       }
@@ -159,7 +159,7 @@
   }
 
   function transport_imgsend(url, data, success) {
-    var img = util_mk1pxImg(url + "?" + data);
+    var img = util_mk1pxImg(url + '?' + data);
     img.onload = img.onerror = function() {
       img.onload = null;
       img.onerror = null;
@@ -180,13 +180,13 @@
 
   /** accumulator **/
 
-  var acc_analyticsUrl = (util_ishttps() ? "https:" : "http:") + "//aianash.com/api/analytics/append",
+  var acc_analyticsUrl = (util_ishttps() ? 'https://' : 'http://') + '@analyticsurl',
       acc_events = [],
       acc_mouseInTm = {},
       acc_mouseInXY = {};
 
   function acc_encode(events) {
-    var prevTm = aian.V;
+    var startTm = prevTm = aian.V;
     var prevDur = 0;
     var data;
     var state;
@@ -197,25 +197,12 @@
 
       prevTm = util_deltacode(event, 1, prevTm);
 
-      if(evtype === 'r') {
-        event[5] = event[5] - event[3];
-        event[6] = event[6] - event[4];
-      } else if(evtype === 'p' && event.length > 4) {
-        var pathele = event[3];
-        var prevx = pathele[1];
-        var prevy = pathele[2];
-        for(var j = 4; j < event.length; j++) {
-          pathele = event[j];
-          prevx = util_deltacode(pathele, 1, prevx);
-          prevy = util_deltacode(pathele, 2, prevy);
-        }
-      }
-
       data = [event[0]];
-      data = data.concat([].slice.call(event, 1).join(',').split(""));
+      data = data.concat([].slice.call(event, 1).join(',').split(''));
+
       if(i == 0) {
-        state = {d: {}, p: data[0], c: 256, r: ""};
-        date = [].slice.call(data, 1)
+        state = {d: {}, p: data[0], c: 256, r: ''};
+        data = [].slice.call(data, 1)
       }
       util_lzw(state, data);
     }
@@ -223,7 +210,7 @@
     var res = state['r'];
     var phrase = state['p'];
     res += String.fromCharCode(phrase.length > 1 ? state['d'][phrase] : phrase.charCodeAt(0));
-    res = prevTm + res;
+    res = startTm + res;
     return res;
   }
 
@@ -232,177 +219,83 @@
     acc_events.push(args);
     var encoded;
     if(acc_events.length > 20) {
-      encoded = "d=" + encodeURIComponent(acc_encode(acc_events)) + "&t=" + aian.T;
+      encoded = 'd=' + encodeURIComponent(acc_encode(acc_events)) + '&t=' + aian.T;
       acc_events = [];
       transport_send(acc_analyticsUrl, encoded, util_noop);
     }
   }
 
-  /** path event constructors **/
-
-  var path = [],
-      path_latestTimestamp = 0,
-      path_active = false;
-
-  function path_useExisting() {
-    return path_active && ((1 * new Date()) - path_latestTimestamp) < 2000;
-  }
-
-  function path_new(startTm) {
-    path_end(); // end any existing path
-    path_active = true;
-    path = ['p', startTm, 0];
-  }
-
-  function path_end() {
-    path_active && (path_active = false, acc_append.apply(null, path));
-  }
-
-  function path_append(id, xy, tm) {
-    path_latestTimestamp = tm;
-    path[2] = tm - path[1];
-    path.push([id, xy[0], xy[1]]);
-  }
-
-  /** read event constructors */
-
-  var read_curr = [],
-      read_active = false;
-
-  function read_start(tm, dur, x, y) {
-    read_active = true;
-    read_curr = ['r', tm, dur, x, y, 0, 0];
-  }
-
-  function read_end() {
-    read_active && (read_active = false, acc_append.apply(null, read_curr));
-  }
-
-  function read_update(tm, dur, x, y) {
-    if(read_active) {
-      read_curr[2] = read_curr[2] + dur;
-      read_curr[5] = x;
-      read_curr[6] = y;
-      return true;
-    } else {
-      read_end()
-      return false
-    };
-  }
-
   /** Event Handlers **/
-
-  var evh_mouseActivity = false,
-      evh_prevSkrlX = 0,
-      evh_prevSkrlY = 0,
-      evh_prevSkrlTm;
 
   // [TODO] to be handled as a seperation ViewChange event
   function evh_resize() {
-    windowHeight = win.screen.height;
-    windowWidth = win.screen.width;
+    windowHeight = html.clientHeight;
+    windowWidth = html.clientWidth;
   }
 
   function evh_scroll(event) {
-    path_end();
-
     var currTm = 1 * new Date();
-    var prevDur = currTm - evh_prevSkrlTm;
+    var x = math.round(win.pageXOffset || html.scrollLeft || body.scrollLeft || 0);
+    var y = math.round(win.pageYOffset || html.scrollTop || body.scrollTop || 0);
 
-    x = (win.pageXOffset || html.scrollLeft || body.scrollLeft || 0);
-    y = (win.pageYOffset || html.scrollTop || body.scrollTop || 0);
-
-    if(prevDur > 700 || evh_mouseActivity) {
-      read_end();
-      acc_append('f',  evh_prevSkrlTm, prevDur, evh_prevSkrlX, evh_prevSkrlY, windowHeight, windowWidth);
-      evh_mouseActivity = false;
-    } else read_update(evh_prevSkrlTm, prevDur, evh_prevSkrlX, evh_prevSkrlY) || read_start(evh_prevSkrlTm, prevDur, evh_prevSkrlX, evh_prevSkrlY);
-
-    evh_prevSkrlTm = currTm;
-    evh_prevSkrlX = x;
-    evh_prevSkrlY = y;
+    acc_append('s', currTm, x, y, windowWidth, windowHeight);
   }
 
-  function evh_mousein(tm, id, event) {
-    evh_mouseActivity = true;
-    acc_mouseInTm[id] = tm;
-    acc_mouseInXY[id] = util_relxy(event.target);
+  function evh_mousemove(event) {
+    var currTm = 1 * new Date();
+    var x = event.pageX;
+    var y = event.pageY;
+
+    acc_append('m', currTm, x, y, windowWidth, windowHeight);
   }
 
-  function evh_mouseout(tm, id, event) {
-    evh_mouseActivity = true;
-    var startTm = acc_mouseInTm[id];
-    if(!startTm) return;
-    acc_mouseInTm[id] = undefined;
+  function evh_click(event) {
+    var currTm = 1 * new Date();
+    var x = event.pageX;
+    var y = event.pageY;
 
-    var xy = acc_mouseInXY[id],
-        dur = (tm - startTm);
-
-    if(dur >= 700) {
-      path_end();
-      acc_append('s', startTm, dur, id, xy[0], xy[1]);
-    } else if(path_useExisting()) {
-      path_append(id, xy, tm);
-    } else {
-      path_new(startTm);
-      path_append(id, xy, tm);
-    }
-  }
-
-  function evh_crMouseHandler(id, fn) {
-    return function(event) {
-      event = event || win.event;
-      if(util_isoutside(this, event)) {
-        fn.call(null, 1 * new Date(), id, event);
-      }
-    }
-  }
-
-  function evh_watchMouseEvt(section, id) {
-    util_listen(section, 'mouseover', evh_crMouseHandler(id, evh_mousein), false);
-    util_listen(section, 'mouseout', evh_crMouseHandler(id, evh_mouseout), false);
+    acc_append('c', currTm, x, y, windowWidth, windowHeight);
   }
 
   /** Pageview */
-  var pageview_url = (util_ishttps() ? 'https' : 'http') + '://aianash.com/api/analytics/pageview';
+  var pageview_url = (util_ishttps() ? 'https://' : 'http://') + '@pageviewurl';
   transport_send(pageview_url, 'ts=' + (new Date()).getTime());
 
   /** AIAN API **/
 
   aian = function() { return fn_papply(aian, arguments); };
-  aian.T = "";
+  aian.T = '';
 
   aian.token = function(token) {
     this.T = token;
   };
 
   aian.track = function() {
-    var sections = doc.getElementsByClassName('aianash');
-    for(i = 0; i < sections.length; evh_watchMouseEvt(sections[i], i), i++);
-    evh_prevSkrlTm = aian.V;
     util_listen(win, 'scroll', evh_scroll, false);
+    util_listen(win, 'mousemove', evh_mousemove, false);
     util_listen(win, 'resize', evh_resize, false);
+    util_listen(win, 'click', evh_click, false);
   };
 
   onready(function() {
-    windowHeight = win.screen.height;
-    windowWidth = win.screen.width;
-    var oaian = win["aian"];
+    windowHeight = html.clientHeight;
+    windowWidth = html.clientWidth;
+    var oaian = win['aian'];
     if(oaian) {
       aian.V = oaian.v; // when page was visited
-      var _aian = win["aian"] = aian;
-      fn_setsafe(_aian, "token", _aian.token);
-      fn_setsafe(_aian, "track", _aian.track);
+      var _aian = win['aian'] = aian;
+      fn_setsafe(_aian, 'token', _aian.token);
+      fn_setsafe(_aian, 'track', _aian.track);
       oaian.p && fn_mapply(_aian, oaian.p);
     }
   });
 
   /** Start Functions registered to onready */
-  if(doc.readyState === "complete" || (doc.readyState !== "loading" && !html.doScroll)) {
+  if(doc.readyState === 'complete' || (doc.readyState !== 'loading' && !html.doScroll)) {
     win.setTimeout(ready);
   } else {
-    doc.addEventListener("DOMContentLoaded", readycompleted, false);
-    win.addEventListener("load", readycompleted, false); // fallback
+    doc.addEventListener('DOMContentLoaded', readycompleted, false);
+    win.addEventListener('load', readycompleted, false); // fallback
   }
 
 })(window);

@@ -3,8 +3,8 @@ package controllers.analytics
 import scala.concurrent.duration._
 import scala.concurrent.Future
 
-import javax.inject._
 import java.net.URL
+import javax.inject._
 
 import akka.actor.{ActorSystem, ActorRef}
 import akka.util.Timeout
@@ -17,7 +17,7 @@ import views.html._
 import aianonymous.commons.core.protocols._, Implicits._
 import aianonymous.commons.core.PageURL
 
-import actors.analytics.{NotificationService, Notify, AddSession}
+import actors.analytics.{NotificationService, Notify, AddToCSV, AddSession}
 import actors.analytics.{IdGenerationService, GetAianId, GetSessionId}
 
 //
@@ -30,7 +30,7 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
   import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
   def aianashjs = Action { implicit request =>
-    Ok(views.js.aianash())
+    Ok(views.js.aianash(config.getString("analytics.analytics-url"), config.getString("analytics.pageview-url")))
   }
 
   def append(d: String, t: Long) = Action.async { implicit request =>
@@ -43,7 +43,7 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
         val url = PageURL(ref)
         checkAndCreateCookies(aianidCokieO, sessidCokieO, url, timestamp.toLong)
           .map { case (aianid, sessionid) =>
-            notification ! Notify(t, aianid.toLong, sessionid.toLong, url, d)
+            notification ! AddToCSV(t, aianid.toLong, sessionid.toLong, url, d)
             createResponseWithCookies(aianid, sessionid)
           }
       }
@@ -95,7 +95,7 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
         for {
           aianid    <- idGenerationService ?= GetAianId
           sessionid <- idGenerationService ?= GetSessionId
-          _         <- notification ?= AddSession(aianid, sessionid, pageUrl, timestamp)
+          // _         <- notification ?= AddSession(aianid, sessionid, pageUrl, timestamp)
         } yield (aianid.toString, sessionid.toString)
 
       case (Some(aianidcookie), Some(sessionidcookie)) =>
@@ -105,7 +105,7 @@ class AnalyticsController @Inject() (system: ActorSystem, config: Configuration,
         implicit val timeout = Timeout(2 seconds)
         for {
           sessionid <- idGenerationService ?= GetSessionId
-          _         <- notification ?= AddSession(aianidcookie.value.toLong, sessionid, pageUrl, timestamp)
+          // _         <- notification ?= AddSession(aianidcookie.value.toLong, sessionid, pageUrl, timestamp)
         } yield (aianidcookie.value, sessionid.toString)
     }
 

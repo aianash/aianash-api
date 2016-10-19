@@ -4,8 +4,11 @@ import scala.collection.mutable.{ArrayBuffer, StringBuilder, Map => MMap}
 import scala.concurrent.duration._
 import scala.concurrent.Future
 
+import java.io._
 import java.net.URL
 import java.lang.System
+
+import javax.inject._
 
 import akka.actor.{Actor, Props, ActorLogging}
 import akka.pattern.pipe
@@ -13,6 +16,7 @@ import akka.routing.FromConfig
 import akka.util.Timeout
 
 import play.api.Logger
+import play.Configuration
 
 import aianonymous.commons.core.protocols._, Implicits._
 import aianonymous.commons.core.PageURL
@@ -25,15 +29,18 @@ import cassie.core.protocols.events._
 sealed trait NotificationProtocol
 case class Notify(tokenId: Long, aianId: Long, sessionId: Long, pageUrl: PageURL, encoded: String)
   extends NotificationProtocol
+case class AddToCSV(tokenId: Long, aianId: Long, sessionId: Long, pageUrl: PageURL, encoded: String)
+  extends NotificationProtocol
 case class AddSession(aianId: Long, sessionId: Long, url: PageURL, timestamp: Long)
   extends NotificationProtocol with Replyable[Boolean]
 
-class NotificationService extends Actor with ActorLogging  {
+class NotificationService @Inject() (config: Configuration) extends Actor with ActorLogging  {
 
   import context.dispatcher
 
   val customerService = context.actorOf(FromConfig.props(), name = "customer-service")
   val eventService = context.actorOf(FromConfig.props(), name = "event-service")
+  val outfile = new PrintWriter(new File(config.getString("analytics.outfile")))
 
   def receive = {
     case Notify(tokenId, aianId, sessionId, pageUrl, encoded) =>
@@ -53,6 +60,11 @@ class NotificationService extends Actor with ActorLogging  {
       } catch {
         case ex: UnsupportedOperationException =>
       }
+
+    case AddToCSV(tokenId, aianId, sessionId, pageUrl, encoded) =>
+      val (startTmstr, data) = encoded splitAt 13
+      val startTime = startTmstr.toLong
+      writeToCsv(tokenId, aianId, sessionId, startTime, lzwDecode(data))
 
     case AddSession(aianId, sessionId, url, timestamp) =>
       implicit val timeout = Timeout(2 seconds)
@@ -131,6 +143,45 @@ class NotificationService extends Actor with ActorLogging  {
     }
 
     events
+  }
+
+  //
+  def writeToCsv(tokenId: Long, aianId: Long, sessionId: Long, startTm: Long, decoded: String) = {
+    var data = decoded.toArray
+    var evParam  = ArrayBuffer.empty[Long]
+    var numstr = StringBuilder.newBuilder
+    var events = ArrayBuffer.empty[Seq[Long]]
+    var inevent = false
+    var evtype: Char = '\u0000'
+    var pIdx = 0
+    var tm = startTm
+
+    for(d <- data) {
+      d match {
+        case 'c' | 's' | 'm' =>
+          if(!numstr.isEmpty) evParam += numstr.result().toInt
+          if(!evParam.isEmpty) {
+            val row = tokenId + "," + aianId + "," + sessionId + "," + d + "," + evParam.mkString(",") + "\n"
+            outfile.write(row)
+            outfile.flush
+          }
+          numstr.clear()
+          evParam.clear()
+          evtype = d
+          pIdx = 0
+
+        case ',' =>
+            pIdx += 1
+            if(pIdx == 1) {
+              tm += numstr.result().toLong
+              evParam += tm
+            }
+            else evParam += numstr.result().toLong
+            numstr.clear()
+
+        case n => numstr += n
+      }
+    }
   }
 
   private def crPageFragmentView(timestamp: Long, params: ArrayBuffer[Int]) =
