@@ -161,9 +161,8 @@ class NotificationService @Inject() (config: Configuration) extends Actor with A
         case 'c' | 's' | 'm' =>
           if(!numstr.isEmpty) evParam += numstr.result().toInt
           if(!evParam.isEmpty) {
-            val row = tokenId + "," + aianId + "," + sessionId + "," + d + "," + evParam.mkString(",") + "\n"
+            val row = tokenId + "," + aianId + "," + sessionId + "," + evtype + "," + evParam.mkString(",") + "\n"
             outfile.write(row)
-            outfile.flush
           }
           numstr.clear()
           evParam.clear()
@@ -175,13 +174,13 @@ class NotificationService @Inject() (config: Configuration) extends Actor with A
             if(pIdx == 1) {
               tm += numstr.result().toLong
               evParam += tm
-            }
-            else evParam += numstr.result().toLong
+            } else evParam += numstr.result().toLong
             numstr.clear()
 
         case n => numstr += n
       }
     }
+    outfile.flush
   }
 
   private def crPageFragmentView(timestamp: Long, params: ArrayBuffer[Int]) =
